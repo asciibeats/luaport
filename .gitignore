@@ -1,0 +1,5 @@
+/priv/luaport
+/_build
+erl_crash.dump
+*.o
+*.stackdump
