@@ -41,10 +41,6 @@
 #define write_error(...) write_message("error", __VA_ARGS__)
 #define write_info(...) write_message("info", __VA_ARGS__)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static void write_message(const char *type, const char* fmt, ...);
 
 static inline size_t read4(char* buf)
@@ -943,7 +939,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
-#ifdef __cplusplus
-}
-#endif
