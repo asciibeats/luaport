@@ -22,8 +22,6 @@
 #define LUAP_TABLE_TUPLE 0
 #define LUAP_TABLE_LIST 1
 #define LUAP_TABLE_TUPLES 2
-#define LUAP_MAIN "/main.lua"
-#define LUAP_PATH "/?.lua"
 
 #define EXIT_BAD_MAIN 199
 #define EXIT_BAD_VERSION 200
