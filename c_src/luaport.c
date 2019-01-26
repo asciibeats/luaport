@@ -7,11 +7,11 @@
 #include <errno.h>
 
 #ifdef __cplusplus
-  #include <lua.hpp>
+	#include <lua.hpp>
 #else
-  #include <lua.h>
-  #include <lualib.h>
-  #include <lauxlib.h>
+	#include <lua.h>
+	#include <lualib.h>
+	#include <lauxlib.h>
 #endif
 
 #define LUAP_PORTLIBNAME "port"
@@ -130,15 +130,15 @@ static int write_term(ei_x_buff *eb)
 
 static void write_format(const char* fmt, ...)
 {
-  va_list args;
-  va_start(args, fmt);
+	va_list args;
+	va_start(args, fmt);
 	ei_x_buff eb;
 	ei_x_new(&eb);
 	ei_x_format(&eb, fmt, args);
 
 	write_term(&eb);
-  ei_x_free(&eb);
-  va_end(args);
+	ei_x_free(&eb);
+	va_end(args);
 }
 
 void write_message(const char *type, const char* fmt, ...)
@@ -159,7 +159,7 @@ void write_message(const char *type, const char* fmt, ...)
 	ei_x_format(&eb, "{~a,~s}", type, msg);
 
 	write_term(&eb);
-  ei_x_free(&eb);
+	ei_x_free(&eb);
 }
 
 static void luap_settype(lua_State *L, int index, int type)
@@ -284,11 +284,11 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
 		return 1;
 	}
 
-	/*if (strcmp(atom, "undefined") == 0)
+	if (strcmp(atom, "undefined") == 0)
 	{
 		lua_pushnil(L);
 	}
-	else */if (strcmp(atom, "true") == 0)
+	else if (strcmp(atom, "true") == 0)
 	{
 		lua_pushboolean(L, 1);
 	}
@@ -466,7 +466,7 @@ static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
 	ei_x_encode_longlong(eb, integer);
 }
 
-static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
+static void l2e_float(lua_State *L, int index, ei_x_buff *eb)
 {
 	lua_Number number = lua_tonumber(L, index);
 	ei_x_encode_double(eb, number);
@@ -625,20 +625,20 @@ static int l2e_any(lua_State *L, int index, ei_x_buff *eb)
 			}
 			else
 			{
-				l2e_number(L, index, eb);
+				l2e_float(L, index, eb);
 			}
 			break;
 		case LUA_TSTRING:
 			l2e_string_binary(L, index, eb);
 			break;
+		case LUA_TTABLE:
+			l2e_table(L, index, eb);
+			break;
 		case LUA_TBOOLEAN:
 			l2e_boolean(L, index, eb);
 			break;
 		case LUA_TNIL:
-			ei_x_encode_atom(eb, "nil");
-			break;
-		case LUA_TTABLE:
-			l2e_table(L, index, eb);
+			ei_x_encode_atom(eb, "undefined");
 			break;
 		/*case LUA_TUSERDATA:
 			l2e_userdata(L, index, eb);
@@ -646,7 +646,7 @@ static int l2e_any(lua_State *L, int index, ei_x_buff *eb)
 		/*case LUA_TFUNCTION:
 			break;*/
 		default:
-			ei_x_encode_atom(eb, "nil");
+			ei_x_encode_atom(eb, "unsupported");
 	}
 
 	return 0;
@@ -698,7 +698,7 @@ static int port_info(lua_State *L)
 
 	ei_x_encode_empty_list(&eb);
 	write_term(&eb);
-  ei_x_free(&eb);
+	ei_x_free(&eb);
 	return 0;
 }
 
@@ -753,10 +753,10 @@ static int luaopen_port(lua_State *L)
 
 int main(int argc, char *argv[])
 {
-  size_t buf_size = LUAP_BUFFER;
-  char *buf = (char*)malloc(buf_size);
- 
-  if (buf == NULL)
+	size_t buf_size = LUAP_BUFFER;
+	char *buf = (char*)malloc(buf_size);
+
+	if (buf == NULL)
 	{
 		exit(EXIT_FAIL_ALLOC);
 	}
@@ -787,7 +787,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_BAD_MAIN);
 	}
 
-  while (read_term(&buf, &buf_size) > 0)
+	while (read_term(&buf, &buf_size) > 0)
 	{
 		index = 0;
 
@@ -930,7 +930,7 @@ int main(int argc, char *argv[])
 	}
 
 	free(buf);
-  ei_x_free(&eb);
+	ei_x_free(&eb);
 
 	if (L != NULL)
 	{
