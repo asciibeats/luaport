@@ -1,8 +1,8 @@
 {application, luaport, [
 	{description, "An erlang port for lua scripting"},
 	{vsn, "1.0.2"},
-  {modules, [luaport, luaport_app, luaport_sup, luaport_server]},
-  {registered, [luaport_sup]},
+	{modules, [luaport, luaport_app, luaport_sup, luaport_server]},
+	{registered, [luaport_sup]},
 	{mod, {luaport_app, []}},
 	{applications, [kernel, stdlib]},
 	{env, []}
