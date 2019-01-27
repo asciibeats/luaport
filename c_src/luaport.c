@@ -14,7 +14,7 @@
 	#include <lauxlib.h>
 #endif
 
-#define LUAP_PORTLIBNAME "port"
+#define LUAP_PORTLIBNAME "luaport"
 #define LUAP_BUFFER 512
 #define LUAP_CALL 0
 #define LUAP_CAST 1
@@ -650,31 +650,31 @@ static int l2e_any(lua_State *L, int index, ei_x_buff *eb)
 	return 0;
 }
 
-static int port_call_cont(lua_State *L, int status, long int ctx)
+static int luaport_call_cont(lua_State *L, int status, long int ctx)
 {
 	return lua_gettop(L);
 }
 
-static int port_call(lua_State *L)
+static int luaport_call(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TSTRING);
 	lua_pushinteger(L, LUAP_CALL);
-	return lua_yieldk(L, lua_gettop(L), 0, port_call_cont);
+	return lua_yieldk(L, lua_gettop(L), 0, luaport_call_cont);
 }
 
-static int port_cast_cont(lua_State *L, int status, long int ctx)
+static int luaport_cast_cont(lua_State *L, int status, long int ctx)
 {
 	return 0;
 }
 
-static int port_cast(lua_State *L)
+static int luaport_cast(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TSTRING);
 	lua_pushinteger(L, LUAP_CAST);
-	return lua_yieldk(L, lua_gettop(L), 0, port_cast_cont);
+	return lua_yieldk(L, lua_gettop(L), 0, luaport_cast_cont);
 }
 
-static int port_info(lua_State *L)
+static int luaport_info(lua_State *L)
 {
 	int i, top = lua_gettop(L);
 
@@ -700,52 +700,52 @@ static int port_info(lua_State *L)
 	return 0;
 }
 
-static int port_asmap(lua_State *L)
+static int luaport_asmap(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 	luap_unsettype(L, 1);
 	return 1;
 }
 
-static int port_astuple(lua_State *L)
+static int luaport_astuple(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 	luap_settype(L, 1, LUAP_TUPLE);
 	return 1;
 }
 
-static int port_aslist(lua_State *L)
+static int luaport_aslist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 	luap_settype(L, 1, LUAP_LIST);
 	return 1;
 }
 
-static int port_astuplelist(lua_State *L)
+static int luaport_astuplelist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
 	luap_settype(L, 1, LUAP_TUPLELIST);
 	return 1;
 }
 
-static const struct luaL_Reg port_lfuncs[] = {
-	{"call", port_call},
-	{"cast", port_cast},
-	{"info", port_info},
-	{"asmap", port_asmap},
-	{"astuple", port_astuple},
-	{"aslist", port_aslist},
-	{"astuplelist", port_astuplelist},
+static const struct luaL_Reg luaport_reg[] = {
+	{"call", luaport_call},
+	{"cast", luaport_cast},
+	{"info", luaport_info},
+	{"asmap", luaport_asmap},
+	{"astuple", luaport_astuple},
+	{"aslist", luaport_aslist},
+	{"astuplelist", luaport_astuplelist},
 	{NULL, NULL}
 };
 
-static int luaopen_port(lua_State *L)
+static int luaopen_luaport(lua_State *L)
 {
-	lua_pushcfunction(L, port_info);
+	lua_pushcfunction(L, luaport_info);
 	lua_setglobal(L, "print");
 	lua_newtable(L);
 	lua_setglobal(L, "state");
-	luaL_newlib(L, port_lfuncs);
+	luaL_newlib(L, luaport_reg);
 	return 1;
 }
 
@@ -777,7 +777,7 @@ int main(int argc, char *argv[])
 	luaL_requiref(L, LUA_OSLIBNAME, luaopen_os, 1);
 	luaL_requiref(L, LUA_DBLIBNAME, luaopen_debug, 1);
 	luaL_requiref(L, LUA_LOADLIBNAME, luaopen_package, 1);
-	luaL_requiref(L, LUAP_PORTLIBNAME, luaopen_port, 1);
+	luaL_requiref(L, LUAP_PORTLIBNAME, luaopen_luaport, 1);
 	lua_settop(L, 0);
 
 	if (luaL_dofile(L, "main.lua"))

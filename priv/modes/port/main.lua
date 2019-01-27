@@ -1,13 +1,13 @@
 function call(...)
-	return port.call(...)
+	return luaport.call(...)
 end
 
 function cast(...)
-	return port.cast(...)
+	return luaport.cast(...)
 end
 
 function info(...)
-	port.info(...)
+	luaport.info(...)
 end
 
 function callprint(...)
@@ -19,17 +19,17 @@ function getstate()
 end
 
 function asmap(t)
-	return port.asmap(t)
+	return luaport.asmap(t)
 end
 
 function astuple(t)
-	return port.astuple(t)
+	return luaport.astuple(t)
 end
 
 function aslist(t)
-	return port.aslist(t)
+	return luaport.aslist(t)
 end
 
 function astuplelist(t)
-	return port.astuplelist(t)
+	return luaport.astuplelist(t)
 end
