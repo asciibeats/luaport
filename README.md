@@ -12,7 +12,7 @@ function multiply(a, b)
   return a * b
 end
 ```
-Luaports can also be spawned with a callback module to be able to call erlang functions from the lua context.
+Luaports can also be spawned with a callback module to be able to call erlang functions from lua context.
 ```erlang
 {ok, Pid} = luaport:spawn(42, "path/to/scripts", callback),
 {ok, Results} = luaport:call(Pid, execute),
