@@ -18,7 +18,7 @@ luaport:despawn(42).
 ```
 ```lua
 function execute()
-  local results = luaport.call(devide, 3, 2)
+  local results = luaport.call('devide', 3, 2)
 end
 ```
 
