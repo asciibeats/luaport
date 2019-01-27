@@ -15,7 +15,6 @@ case1(_Config) ->
 	%spawn without a callback
 	{ok, Pid1} = luaport:spawn(42, Path),
 	{error, callback_undefined} = luaport:call(Pid1, call, [test_call, <<"hallo">>]),
-	ok = luaport:despawn(42),
 	%spawn with a callback
 	{ok, Pid2} = luaport:spawn(<<"name">>, Path, ?MODULE),
 	%check if global table 'state' exists
@@ -45,6 +44,7 @@ case1(_Config) ->
 		[{2, 2}, {true, 42}, {<<"a">>, 4}] -> ok
 	end,
 	ok = luaport:despawn(<<"name">>),
+	ok = luaport:despawn(42),
 	ok = application:stop(luaport).
 
 test_call(A) ->
