@@ -1,7 +1,7 @@
 # LuaPort
 *An erlang port for scripting application logic in lua*
 
-Supported datatypes are: numbers, strings, binaries, atoms, lists, tuples and maps.
+Supported datatypes are: Numbers, Strings, Binaries, Atoms, Lists, Tuples and Maps.
 ```erlang
 {ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
 {ok, Results} = luaport:call(Pid, multiply, [2, 3]),
