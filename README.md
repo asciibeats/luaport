@@ -2,7 +2,7 @@
 An erlang port for scripting application logic in lua
 ```
 {ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
-{ok, Results} = luaport:call(Pid, some_lua_function, [arg1, 2, "hello?", <<"bye!">>]),
+{ok, Results} = luaport:call(Pid, some_lua_function, [arg1, 2, "hello?", <<"bye!">>, [], {}, #{}]),
 luaport:despawn(some_id).
 ```
 
