@@ -1,23 +1,3 @@
-function as_map(t)
-	port.asmap(t)
-	return t
-end
-
-function as_tuple(t)
-	port.astuple(t)
-	return t
-end
-
-function as_list(t)
-	port.aslist(t)
-	return t
-end
-
-function as_tuples(t)
-	port.astuples(t)
-	return t
-end
-
 function call(...)
 	return port.call(...)
 end
@@ -36,4 +16,20 @@ end
 
 function getstate()
 	return state
+end
+
+function asmap(t)
+	return port.asmap(t)
+end
+
+function astuple(t)
+	return port.astuple(t)
+end
+
+function aslist(t)
+	return port.aslist(t)
+end
+
+function astuplelist(t)
+	return port.astuplelist(t)
 end

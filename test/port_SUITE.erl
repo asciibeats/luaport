@@ -24,18 +24,18 @@ case1(_Config) ->
 	{ok, []} = luaport:call(Pid, cast, [test_cast, foo]),
 	%port.info
 	{ok, []} = luaport:call(Pid, info, ["info", {1, 1.0, <<"string">>, #{}, [], {}}]),
-	%port.aslist
-	{ok, [[]]} = luaport:call(Pid, as_list, [#{2 => 2, 4 => 4}]),
-	{ok, [[2]]} = luaport:call(Pid, as_list, [#{1 => 2, 4 => 4}]),
-	{ok, [[2, 4]]} = luaport:call(Pid, as_list, [#{1 => 2, 2 => 4}]),
-	%port.astuple
-	{ok, [{}]} = luaport:call(Pid, as_tuple, [#{2 => 2, 4 => 4}]),
-	{ok, [{2}]} = luaport:call(Pid, as_tuple, [#{1 => 2, 4 => 4}]),
-	{ok, [{2, 4}]} = luaport:call(Pid, as_tuple, [#{1 => 2, 2 => 4}]),
 	%port.asmap
-	{ok, [#{1 := 1, 2 := <<"a">>, 3 := <<"t">>}]} = luaport:call(Pid, as_map, [[1, a, <<"t">>]]),
-	%port.astuples
-	{ok, [TupleList]} = luaport:call(Pid, as_tuples, [#{2 => 2, <<"a">> => 4, true => 42}]),
+	{ok, [#{1 := 1, 2 := <<"a">>, 3 := <<"t">>}]} = luaport:call(Pid, asmap, [[1, a, <<"t">>]]),
+	%port.aslist
+	{ok, [[]]} = luaport:call(Pid, aslist, [#{2 => 2, 4 => 4}]),
+	{ok, [[2]]} = luaport:call(Pid, aslist, [#{1 => 2, 4 => 4}]),
+	{ok, [[2, 4]]} = luaport:call(Pid, aslist, [#{1 => 2, 2 => 4}]),
+	%port.astuple
+	{ok, [{}]} = luaport:call(Pid, astuple, [#{2 => 2, 4 => 4}]),
+	{ok, [{2}]} = luaport:call(Pid, astuple, [#{1 => 2, 4 => 4}]),
+	{ok, [{2, 4}]} = luaport:call(Pid, astuple, [#{1 => 2, 2 => 4}]),
+	%port.astuple
+	{ok, [TupleList]} = luaport:call(Pid, astuplelist, [#{2 => 2, <<"a">> => 4, true => 42}]),
 	case lists:keysort(1, TupleList) of
 		[{2, 2}, {true, 42}, {<<"a">>, 4}] -> ok
 	end,
