@@ -64,11 +64,21 @@ receive_port(#state{port = Port} = State) ->
 		{Port, {data, Data}} -> 
 			case binary_to_term(Data, [safe]) of
 				{call, {Func, Args}} ->
-					Port ! {self(), {command, term_to_binary({apply(State#state.callback, Func, Args)})}},
-					receive_port(State);
+					case State#state.callback of
+						undefined ->
+							{error, callback_undefined};
+						Module ->
+							Port ! {self(), {command, term_to_binary({apply(Module, Func, Args)})}},
+							receive_port(State)
+					end;
 				{cast, {Func, Args}} ->
-					apply(State#state.callback, Func, Args),
-					receive_port(State);
+					case State#state.callback of
+						undefined ->
+							{error, callback_undefined};
+						Module ->
+							apply(Module, Func, Args),
+							receive_port(State)
+					end;
 				{info, List} -> 
 					io:format("~ninf ~p ~p", [Port, List]),
 					receive_port(State);

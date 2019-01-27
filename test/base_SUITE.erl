@@ -10,7 +10,7 @@ all() -> [case1].
 case1(_Config) ->
 	ok = application:start(luaport),
 	Path = filename:join([code:priv_dir(luaport), "modes", "base"]),
-	{ok, Pid} = luaport:spawn(<<"name">>, Path, ?MODULE),
+	{ok, Pid} = luaport:spawn(<<"name">>, Path),
 	{error, _Reason1} = luaport:call(Pid, fail),
 	{error, _Reason2} = luaport:call(Pid, callerror, [<<"some error message">>, 1]),
 	{ok, [[]]} = luaport:call(Pid, echo, [[]]),

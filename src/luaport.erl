@@ -1,5 +1,6 @@
 -module(luaport).
 
+-export([spawn/2]).
 -export([spawn/3]).
 -export([respawn/1]).
 -export([despawn/1]).
@@ -11,6 +12,8 @@
 
 -define(TIMEOUT, 1000).
 
+spawn(Id, Path) ->
+	luaport_sup:spawn(Id, Path, undefined).
 spawn(Id, Path, Callback) ->
 	luaport_sup:spawn(Id, Path, Callback).
 
@@ -27,7 +30,7 @@ call(Pid, Name, Args) ->
 call(Pid, Name, Args, Timeout) ->
 	luaport_server:call(Pid, Name, Args, Timeout).
 
-cast(Pid, Name) ->
-	cast(Pid, Name, []).
-cast(Pid, Name, Args) ->
-	luaport_server:cast(Pid, Name, Args).
+%cast(Pid, Name) ->
+%	cast(Pid, Name, []).
+%cast(Pid, Name, Args) ->
+%	luaport_server:cast(Pid, Name, Args).
