@@ -23,6 +23,14 @@ function execute()
   local results = luaport.call('divide', 3, 2)
 end
 ```
+```erlang
+-module(callback).
+
+-export([divide/2]).
+
+divide(A, B) ->
+  [A / B].
+```
 
 ## Test
 ```
