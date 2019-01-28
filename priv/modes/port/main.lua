@@ -14,6 +14,10 @@ function callprint(...)
 	print(...)
 end
 
+function calltostring(o)
+	return tostring(o)
+end
+
 function getstate()
 	return state
 end
@@ -32,4 +36,8 @@ end
 
 function astuplelist(t)
 	return luaport.astuplelist(t)
+end
+
+function toatom(s)
+	return luaport.toatom(s)
 end
