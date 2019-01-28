@@ -32,14 +32,14 @@ divide(A, B) ->
   [A / B].
 ```
 
-### Test
+## Test
 ```
 git clone https://github.com/asciibeats/luaport.git
 cd luaport
 rebar3 ct
 ```
 
-### Use
+## Use
 I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your *rebar.config*.
 ```erlang
 {deps, [
