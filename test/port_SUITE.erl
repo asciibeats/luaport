@@ -38,11 +38,14 @@ case1(_Config) ->
 	{ok, [{}]} = luaport:call(Pid2, astuple, [#{2 => 2, 4 => 4}]),
 	{ok, [{2}]} = luaport:call(Pid2, astuple, [#{1 => 2, 4 => 4}]),
 	{ok, [{2, 4}]} = luaport:call(Pid2, astuple, [#{1 => 2, 2 => 4}]),
-	%port.astuple
+	%port.astuplelist
 	{ok, [TupleList]} = luaport:call(Pid2, astuplelist, [#{2 => 2, <<"a">> => 4, true => 42}]),
 	case lists:keysort(1, TupleList) of
 		[{2, 2}, {true, 42}, {<<"a">>, 4}] -> ok
 	end,
+	%port.toatom
+	{ok, [string]} = luaport:call(Pid2, toatom, [<<"string">>]),
+	{ok, [<<"atom">>]} = luaport:call(Pid2, calltostring, [atom]),
 	ok = luaport:despawn(<<"name">>),
 	ok = luaport:despawn(42),
 	ok = application:stop(luaport).

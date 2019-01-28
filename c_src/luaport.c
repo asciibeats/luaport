@@ -19,9 +19,10 @@
 #define LUAP_CALL 0
 #define LUAP_CAST 1
 #define LUAP_TYPE_KEY "___type"
-#define LUAP_TUPLE 0
-#define LUAP_LIST 1
-#define LUAP_TUPLELIST 2
+#define LUAP_MAP 0
+#define LUAP_TUPLE 1
+#define LUAP_LIST 2
+#define LUAP_TUPLELIST 3
 #define LUAP_TATOM "atom"
 
 #define EXIT_BAD_MAIN 199
@@ -162,42 +163,51 @@ static void write_message(const char *type, const char* fmt, ...)
 	ei_x_free(&eb);
 }
 
-static void luap_settype(lua_State *L, int index, int type)
+static void luap_tabletype(lua_State *L, int index, int type)
 {
-	index = lua_absindex(L, index);
-
-	if (!lua_getmetatable(L, index))
+	if (type == LUAP_MAP)
 	{
-		lua_createtable(L, 0, 1);
-	}
+		if (lua_getmetatable(L, index))
+		{
+			lua_pushfstring(L, LUAP_TYPE_KEY);
+			lua_pushnil(L);
+			lua_rawset(L, -3);
+			lua_pushnil(L);
 
-	lua_pushfstring(L, LUAP_TYPE_KEY);
-	lua_pushinteger(L, type);
-	lua_rawset(L, -3);
-	lua_setmetatable(L, index);
+			if (!lua_next(L, -2))
+			{
+				lua_pushnil(L);
+				lua_setmetatable(L, index);
+			}
+			else
+			{
+				lua_pop(L, 2);
+			}
+
+			lua_pop(L, 1);
+		}
+	}
+	else
+	{
+		index = lua_absindex(L, index);
+
+		if (!lua_getmetatable(L, index))
+		{
+			lua_createtable(L, 0, 1);
+		}
+
+		lua_pushfstring(L, LUAP_TYPE_KEY);
+		lua_pushinteger(L, type);
+		lua_rawset(L, -3);
+		lua_setmetatable(L, index);
+	}
 }
 
-static void luap_unsettype(lua_State *L, int index)
+static int luap_tostring(lua_State *L)
 {
-	if (lua_getmetatable(L, index))
-	{
-		lua_pushfstring(L, LUAP_TYPE_KEY);
-		lua_pushnil(L);
-		lua_rawset(L, -3);
-		lua_pushnil(L);
-
-		if (lua_next(L, -2) == 0)
-		{
-			lua_pushnil(L);
-			lua_setmetatable(L, index);
-		}
-		else
-		{
-			lua_pop(L, 2);
-		}
-
-		lua_pop(L, 1);
-	}
+	char *atom = luap_checkatom(L, 1);
+	lua_pushstring(L, atom);
+	return 1;
 }
 
 static int e2l_any(const char *buf, int *index, lua_State *L);
@@ -243,7 +253,7 @@ static int e2l_string(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, size, 0);
-	luap_settype(L, -1, LUAP_LIST);
+	luap_tabletype(L, -1, LUAP_LIST);
 
 	for (int i = 0; i < size; i++)
 	{
@@ -294,11 +304,11 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
 		lua_pop(L, 1);
 		lua_pushboolean(L, 0);
 	}
-	else if (!strcmp(atom, "undefined"))
+	/*else if (!strcmp(atom, "undefined"))
 	{
 		lua_pop(L, 1);
 		lua_pushnil(L);
-	}
+	}*/
 	else
 	{
 		luaL_getmetatable(L, LUAP_TATOM);
@@ -318,7 +328,7 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, arity, 0);
-	luap_settype(L, -1, LUAP_TUPLE);
+	luap_tabletype(L, -1, LUAP_TUPLE);
 
 	for (int i = 1; i <= arity; i++)
 	{
@@ -339,7 +349,7 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, arity, 0);
-	luap_settype(L, -1, LUAP_LIST);
+	luap_tabletype(L, -1, LUAP_LIST);
 
 	for (int i = 1; i <= arity; i++)
 	{
@@ -354,7 +364,7 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 static int e2l_emptylist(const char *buf, int *index, lua_State *L)
 {
 	lua_createtable(L, 0, 0);
-	luap_settype(L, -1, LUAP_LIST);
+	luap_tabletype(L, -1, LUAP_LIST);
 	ei_skip_term(buf, index);
 	return 0;
 }
@@ -504,7 +514,7 @@ static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
 	ei_x_new(&eb_tmp);
 	lua_pushnil(L);
 
-	while (lua_next(L, index) != 0)
+	while (lua_next(L, index))
 	{
 		l2e_any(L, -2, &eb_tmp);
 		l2e_any(L, -1, &eb_tmp);
@@ -556,7 +566,7 @@ static void l2e_table_tuplelist(lua_State *L, int index, ei_x_buff *eb)
 	index = lua_absindex(L, index);
 	lua_pushnil(L);
 
-	while (lua_next(L, index) != 0)
+	while (lua_next(L, index))
 	{
 		ei_x_encode_list_header(eb, 1);
 		ei_x_encode_tuple_header(eb, 2);
@@ -642,14 +652,14 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 		case LUA_TBOOLEAN:
 			l2e_boolean(L, index, eb);
 			break;
-		case LUA_TNIL:
+		/*case LUA_TNIL:
 			ei_x_encode_atom(eb, "undefined");
-			break;
+			break;*/
 		case LUA_TUSERDATA:
 			l2e_userdata_atom(L, index, eb);
 			break;
-		default:
-			ei_x_encode_atom(eb, "unsupported");
+		/*default:
+			ei_x_encode_atom(eb, "unsupported");*/
 	}
 }
 
@@ -706,28 +716,39 @@ static int luaport_info(lua_State *L)
 static int luaport_asmap(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_unsettype(L, 1);
+	luap_tabletype(L, 1, LUAP_MAP);
 	return 1;
 }
 
 static int luaport_astuple(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_settype(L, 1, LUAP_TUPLE);
+	luap_tabletype(L, 1, LUAP_TUPLE);
 	return 1;
 }
 
 static int luaport_aslist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_settype(L, 1, LUAP_LIST);
+	luap_tabletype(L, 1, LUAP_LIST);
 	return 1;
 }
 
 static int luaport_astuplelist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_settype(L, 1, LUAP_TUPLELIST);
+	luap_tabletype(L, 1, LUAP_TUPLELIST);
+	return 1;
+}
+
+static int luaport_toatom(lua_State *L)
+{
+	size_t len;
+	const char *str = luaL_checklstring(L, 1, &len);
+	char *atom = (char *)lua_newuserdata(L, MAXATOMLEN);
+	memcpy(atom, str, len);
+	luaL_getmetatable(L, LUAP_TATOM);
+	lua_setmetatable(L, -2);
 	return 1;
 }
 
@@ -739,19 +760,19 @@ static const struct luaL_Reg luaport_func[] = {
 	{"astuple", luaport_astuple},
 	{"aslist", luaport_aslist},
 	{"astuplelist", luaport_astuplelist},
+	{"toatom", luaport_toatom},
 	{NULL, NULL}
 };
 
-/*static const struct luaL_Reg luap_atom_meta[] = {
+static const struct luaL_Reg atom_meta[] = {
+	{"__tostring", luap_tostring},
 	{NULL, NULL}
-};*/
+};
 
 static int luaopen_luaport(lua_State *L)
 {
 	luaL_newmetatable(L, LUAP_TATOM);
-	//lua_pushvalue(L, -1);
-	//lua_setfield(L, -2, "__index");
-	//luaL_setfuncs(L, luap_atom_meta, 0);
+	luaL_setfuncs(L, atom_meta, 0);
 	lua_pushcfunction(L, luaport_info);
 	lua_setglobal(L, "print");
 	lua_newtable(L);
