@@ -40,13 +40,13 @@ rebar3 ct
 ```
 
 ### Use
-I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your **rebar.config**.
+I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your *rebar.config*.
 ```erlang
 {deps, [
   {luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
 ]}.
 ```
-Create a lua script at **path/to/scripts** called **main.lua**.
+Create a lua script at *path/to/scripts* called *main.lua*.
 ```lua
 function subtract(a, b)
   return a - b
