@@ -22,6 +22,7 @@
 #define LUAP_TUPLE 0
 #define LUAP_LIST 1
 #define LUAP_TUPLELIST 2
+#define LUAP_TATOM "atom"
 
 #define EXIT_BAD_MAIN 199
 #define EXIT_BAD_VERSION 200
@@ -36,6 +37,7 @@
 #define EXIT_FAIL_WRITE 209
 #define EXIT_FAIL_ALLOC 210
 
+#define luap_checkatom(L, index) (char *)luaL_checkudata(L, index, LUAP_TATOM)
 #define write_error(...) write_message("error", __VA_ARGS__)
 #define write_info(...) write_message("info", __VA_ARGS__)
 
@@ -274,29 +276,33 @@ static int e2l_binary(const char *buf, int *index, lua_State *L)
 
 static int e2l_atom(const char *buf, int *index, lua_State *L)
 {
-	char atom[MAXATOMLEN + 1];
+	char *atom = (char *)lua_newuserdata(L, MAXATOMLEN);
 
 	if (ei_decode_atom(buf, index, atom))
-	//if (ei_decode_atom_as(buf, index, atom, MAXATOMLEN + 1, ERLANG_UTF8, NULL, NULL))
 	{
+		lua_pop(L, 1);
 		return 1;
 	}
 
-	if (strcmp(atom, "undefined") == 0)
+	if (!strcmp(atom, "true"))
 	{
-		lua_pushnil(L);
-	}
-	else if (strcmp(atom, "true") == 0)
-	{
+		lua_pop(L, 1);
 		lua_pushboolean(L, 1);
 	}
-	else if (strcmp(atom, "false") == 0)
+	else if (!strcmp(atom, "false"))
 	{
+		lua_pop(L, 1);
 		lua_pushboolean(L, 0);
+	}
+	else if (!strcmp(atom, "undefined"))
+	{
+		lua_pop(L, 1);
+		lua_pushnil(L);
 	}
 	else
 	{
-		lua_pushstring(L, atom);
+		luaL_getmetatable(L, LUAP_TATOM);
+		lua_setmetatable(L, -2);
 	}
 
 	return 0;
@@ -456,7 +462,7 @@ static int e2l_any(const char *buf, int *index, lua_State *L)
 	return 0;
 }
 
-static int l2e_any(lua_State *L, int index, ei_x_buff *eb);
+static void l2e_any(lua_State *L, int index, ei_x_buff *eb);
 
 static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
 {
@@ -605,12 +611,13 @@ static void l2e_range_list(lua_State *L, int from, int to, ei_x_buff *eb)
 	ei_x_encode_empty_list(eb);
 }
 
-/*static int l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
+static void l2e_userdata_atom(lua_State *L, int index, ei_x_buff *eb)
 {
-	return 0;
-}*/
+	char *atom = luap_checkatom(L, index);
+	ei_x_encode_atom(eb, atom);
+}
 
-static int l2e_any(lua_State *L, int index, ei_x_buff *eb)
+static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 {
 	int type = lua_type(L, index);
 
@@ -638,16 +645,12 @@ static int l2e_any(lua_State *L, int index, ei_x_buff *eb)
 		case LUA_TNIL:
 			ei_x_encode_atom(eb, "undefined");
 			break;
-		/*case LUA_TUSERDATA:
-			l2e_userdata(L, index, eb);
-			break;*/
-		/*case LUA_TFUNCTION:
-			break;*/
+		case LUA_TUSERDATA:
+			l2e_userdata_atom(L, index, eb);
+			break;
 		default:
 			ei_x_encode_atom(eb, "unsupported");
 	}
-
-	return 0;
 }
 
 static int luaport_call_cont(lua_State *L, int status, long int ctx)
@@ -728,7 +731,7 @@ static int luaport_astuplelist(lua_State *L)
 	return 1;
 }
 
-static const struct luaL_Reg luaport_reg[] = {
+static const struct luaL_Reg luaport_func[] = {
 	{"call", luaport_call},
 	{"cast", luaport_cast},
 	{"info", luaport_info},
@@ -739,13 +742,21 @@ static const struct luaL_Reg luaport_reg[] = {
 	{NULL, NULL}
 };
 
+/*static const struct luaL_Reg luap_atom_meta[] = {
+	{NULL, NULL}
+};*/
+
 static int luaopen_luaport(lua_State *L)
 {
+	luaL_newmetatable(L, LUAP_TATOM);
+	//lua_pushvalue(L, -1);
+	//lua_setfield(L, -2, "__index");
+	//luaL_setfuncs(L, luap_atom_meta, 0);
 	lua_pushcfunction(L, luaport_info);
 	lua_setglobal(L, "print");
 	lua_newtable(L);
 	lua_setglobal(L, "state");
-	luaL_newlib(L, luaport_reg);
+	luaL_newlib(L, luaport_func);
 	return 1;
 }
 
@@ -762,7 +773,7 @@ int main(int argc, char *argv[])
 	int index = 0;
 	int version;
 	int arity;
-	char func[MAXATOMLEN + 1];
+	char func[MAXATOMLEN];
 	int nargs;
 	int status;
 	ei_x_buff eb;
@@ -815,22 +826,11 @@ int main(int argc, char *argv[])
 			{
 				exit(EXIT_BAD_FUNC);
 			}
+		}
 
-			if (e2l_args(buf, &index, L, &nargs))
-			{
-				exit(EXIT_BAD_ARGS);
-			}
-		}
-		else if (arity == 1)//data
+		if (e2l_args(buf, &index, L, &nargs))
 		{
-			if (e2l_args(buf, &index, L, &nargs))
-			{
-				exit(EXIT_BAD_ARGS);
-			}
-		}
-		else
-		{
-			exit(EXIT_WRONG_ARITY);
+			exit(EXIT_BAD_ARGS);
 		}
 
 		resume:
