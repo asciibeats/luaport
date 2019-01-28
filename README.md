@@ -38,3 +38,19 @@ git clone https://github.com/asciibeats/luaport.git
 cd luaport
 rebar3 ct
 ```
+
+## Use
+I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your *rebar.config*.
+```erlang
+{deps, [
+	{luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
+]}.
+```
+Don't forget to start the application before you use it.
+```erlang
+application:start(luaport),
+{ok, Pid} = luaport:spawn(myport, "path/to/scripts"),
+luaport:call(Pid, multiply, [23, 42]),
+luaport:despawn(myport),
+application:stop(luaport).
+```
