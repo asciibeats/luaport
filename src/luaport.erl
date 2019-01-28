@@ -13,7 +13,7 @@
 -define(TIMEOUT, 1000).
 
 spawn(Id, Path) ->
-	luaport_sup:spawn(Id, Path, undefined).
+	?MODULE:spawn(Id, Path, undefined).
 spawn(Id, Path, Callback) ->
 	luaport_sup:spawn(Id, Path, Callback).
 

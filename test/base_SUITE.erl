@@ -9,10 +9,10 @@ all() -> [case1].
 
 case1(_Config) ->
 	ok = application:start(luaport),
-	Path = filename:join([code:priv_dir(luaport), "modes", "base"]),
+	Path = filename:join([code:priv_dir(luaport), modes, base]),
 	{ok, Pid} = luaport:spawn(<<"name">>, Path),
-	{error, _Reason1} = luaport:call(Pid, fail),
-	{error, _Reason2} = luaport:call(Pid, callerror, [<<"some error message">>, 1]),
+	{error, <<"main.lua:2: attempt to index a nil value (global 'a')">>} = luaport:call(Pid, fail),
+	{error, <<"main.lua:6: some error message">>} = luaport:call(Pid, callerror, [<<"some error message">>, 1]),
 	{ok, [[]]} = luaport:call(Pid, echo, [[]]),
 	{ok, [#{}]} = luaport:call(Pid, echo, [#{}]),
 	{ok, [{}]} = luaport:call(Pid, echo, [{}]),
