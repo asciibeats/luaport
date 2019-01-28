@@ -55,9 +55,9 @@ end
 Don't forget to start the application before you use it.
 ```erlang
 application:start(luaport),
-{ok, Pid} = luaport:spawn(myid, "path/to/scripts"),
+{ok, Pid} = luaport:spawn("myid", "path/to/scripts"),
 {ok, Results} = luaport:call(Pid, subtract, [43, 1]),
-luaport:despawn(myid),
+luaport:despawn("myid"),
 application:stop(luaport).
 ```
 Be happy!
