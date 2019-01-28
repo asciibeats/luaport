@@ -43,14 +43,21 @@ rebar3 ct
 I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your *rebar.config*.
 ```erlang
 {deps, [
-	{luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
+  {luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
 ]}.
+```
+Create a lua script at *path/to/scripts* called *main.lua*.
+```lua
+function subtract(a, b)
+  return a - b
+end
 ```
 Don't forget to start the application before you use it.
 ```erlang
 application:start(luaport),
-{ok, Pid} = luaport:spawn(myport, "path/to/scripts"),
-luaport:call(Pid, multiply, [23, 42]),
-luaport:despawn(myport),
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts"),
+{ok, Results} = luaport:call(Pid, subtract, [43, 1]),
+luaport:despawn(myid),
 application:stop(luaport).
 ```
+Be happy!
