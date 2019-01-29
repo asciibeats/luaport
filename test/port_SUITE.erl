@@ -47,6 +47,8 @@ case1(_Config) ->
 	{ok, [[]]} = luaport:call(Pid2, aslist, [#{2 => 2, 4 => 4}]),
 	{ok, [[2]]} = luaport:call(Pid2, aslist, [#{1 => 2, 4 => 4}]),
 	{ok, [[2, 4]]} = luaport:call(Pid2, aslist, [#{1 => 2, 2 => 4}]),
+	%only succeeds with LUAP_UNDEFINED_AS_NIL set
+	%{ok, [[2]]} = luaport:call(Pid2, aslist, [#{1 => 2, 2 => undefined}]),
 	%port.astuple
 	{ok, [{}]} = luaport:call(Pid2, astuple, [#{2 => 2, 4 => 4}]),
 	{ok, [{2}]} = luaport:call(Pid2, astuple, [#{1 => 2, 4 => 4}]),
@@ -58,14 +60,14 @@ case1(_Config) ->
 	end,
 	%port.toatom
 	{ok, [string]} = luaport:call(Pid2, toatom, [<<"string">>]),
+	%tostring(atom)
 	{ok, [<<"atom">>]} = luaport:call(Pid2, calltostring, [atom]),
 	ok = luaport:despawn(<<"name">>),
 	ok = luaport:despawn(42),
 	ok = application:stop(luaport).
 
 test_call(A) ->
-	ct:pal("Cast: ~n~p~n", [A]),
 	[A].
 
 test_cast(A) ->
-	ct:pal("Cast: ~n~p~n", [A]).
+	ok.
