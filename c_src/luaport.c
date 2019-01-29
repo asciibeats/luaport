@@ -779,6 +779,12 @@ static int luaport_ismap(lua_State *L)
 	return 1;
 }
 
+static int luaport_isatom(lua_State *L)
+{
+	lua_pushboolean(L, luaL_testudata(L, 1, LUAP_TATOM) != NULL);
+	return 1;
+}
+
 static int luaport_asmap(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -823,7 +829,7 @@ static const struct luaL_Reg luaport_func[] = {
 	{"istuple", luaport_istuple},
 	{"islist", luaport_islist},
 	{"istuplelist", luaport_istuplelist},
-	//{"isatom", luaport_isatom},
+	{"isatom", luaport_isatom},
 	{"asmap", luaport_asmap},
 	{"astuple", luaport_astuple},
 	{"aslist", luaport_aslist},

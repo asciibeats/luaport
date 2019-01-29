@@ -14,6 +14,10 @@ function calltostring(v)
 	return tostring(v)
 end
 
+function calltype(v)
+	return type(v)
+end
+
 function getstate()
 	return state
 end
@@ -32,6 +36,10 @@ end
 
 function istuple(t)
 	return luaport.istuple(t)
+end
+
+function isatom(a)
+	return luaport.isatom(a)
 end
 
 function asmap(t)

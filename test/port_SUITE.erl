@@ -38,6 +38,9 @@ case1(_Config) ->
 	%port.istuple
 	{ok, [true]} = luaport:call(Pid2, istuple, [{}]),
 	{ok, [false]} = luaport:call(Pid2, istuple, [#{}]),
+	%port.isatom
+	{ok, [true]} = luaport:call(Pid2, isatom, [atom]),
+	{ok, [false]} = luaport:call(Pid2, isatom, ["list"]),
 	%port.asmap
 	{ok, [#{1 := 1, 2 := a, 3 := <<"t">>}]} = luaport:call(Pid2, asmap, [[1, a, <<"t">>]]),
 	%port.aslist
