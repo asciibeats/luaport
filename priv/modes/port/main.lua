@@ -38,10 +38,6 @@ function istuple(t)
 	return luaport.istuple(t)
 end
 
-function isatom(a)
-	return luaport.isatom(a)
-end
-
 function asmap(t)
 	return luaport.asmap(t)
 end
@@ -52,12 +48,4 @@ end
 
 function aslist(t)
 	return luaport.aslist(t)
-end
-
-function astuplelist(t)
-	return luaport.astuplelist(t)
-end
-
-function toatom(s)
-	return luaport.toatom(s)
 end

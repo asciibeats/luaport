@@ -4,9 +4,9 @@ ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~t
 
 DEFINES := -D_REENTRANT=PTHREADS
 #DEFINES += -DLUA_USE_APICHECK
-ifneq ($(LUAP_UNDEFINED_AS_NIL),)
-	DEFINES += -DLUAP_UNDEFINED_AS_NIL
-endif
+#ifneq ($(LUAP_UNDEFINED_AS_NIL),)
+#	DEFINES += -DLUAP_UNDEFINED_AS_NIL
+#endif
 
 CFLAGS := -Ic_src -I$(ERTS_INCLUDE_DIR) -I$(ERL_INTERFACE_INCLUDE_DIR)
 CFLAGS += -O3 -finline-functions $(DEFINES)

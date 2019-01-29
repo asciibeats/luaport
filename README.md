@@ -1,7 +1,7 @@
 # LuaPort
 *An erlang port for scripting application logic in lua*
 
-Supported datatypes are: Numbers, Strings, Binaries, Atoms, Lists, Tuples and Maps.
+Supported datatypes are: Numbers, Strings, Binaries, Lists, Tuples and Maps.
 ```erlang
 {ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
 {ok, Results} = luaport:call(Pid, multiply, [2, 3]),
@@ -67,30 +67,27 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 
 | Erlang | Lua | Notes |
 | --- | --- | --- |
+| 23 | 23 | no surprises here |
 | <<"string">> | 'string' | |
+| "abc" | {97, 98, 99} | erlang strings are lists! |
 | [1, 2] | {1, 2} | has internal metatype 'list' |
 | {3, 4} | {3, 4} | has internal metatype 'tuple' |
 | #{2 => 4} | {[2] = 4} | has internal metatype 'map' |
 | true | true |  |
-| false | false |  |
-| undefined | nil | if compiled with LUAP_UNDEFINED_AS_NIL set |
-| other_atoms | userdata 'atom' |  |
+| false | false | in fact, every atom but true is false |
 
-There are several conversion functions to help you.
+There are three conversion functions to help you.
 
 | Function | Description |
 | --- | --- |
 | aslist(t) | set metatype 'list' |
 | astuple(t) | set metatype 'tuple' |
 | asmap(t) | set metatype 'map' |
-| toatom(s) | string to atom |
-| tostring(a) | atom to string |
 
-Also there exist some test functions since maps, lists and tuples are really tables in lua and have the same lua type. Otherwise they could not be used in lua's standard functions.
+Also there exist three test functions since maps, lists and tuples are really tables in lua and have the same lua type. Otherwise they could not be used in lua's standard functions.
 
 | Function |
 | --- |
 | islist(v) |
 | istuple(v) |
 | ismap(v) |
-| isatom(v) |

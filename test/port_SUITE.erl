@@ -25,7 +25,7 @@ case1(_Config) ->
 	{ok, [<<"ö">>]} = luaport:call(Pid2, call, [<<"test_call">>, <<"ö">>]),
 	{ok, [<<"ö"/utf8>>]} = luaport:call(Pid2, call, [<<"test_call">>, <<"ö"/utf8>>]),
 	%port.cast
-	{ok, []} = luaport:call(Pid2, cast, [<<"test_cast">>, foo]),
+	{ok, []} = luaport:call(Pid2, cast, [<<"test_cast">>, "foo"]),
 	%custom print replacement
 	{ok, []} = luaport:call(Pid2, info, ["info", {1, 1.0, <<"string">>, #{}, [], {}}]),
 	%port.ismap
@@ -38,30 +38,16 @@ case1(_Config) ->
 	%port.istuple
 	{ok, [true]} = luaport:call(Pid2, istuple, [{}]),
 	{ok, [false]} = luaport:call(Pid2, istuple, [#{}]),
-	%port.isatom
-	{ok, [true]} = luaport:call(Pid2, isatom, [atom]),
-	{ok, [false]} = luaport:call(Pid2, isatom, ["list"]),
 	%port.asmap
-	{ok, [#{1 := 1, 2 := a, 3 := <<"t">>}]} = luaport:call(Pid2, asmap, [[1, a, <<"t">>]]),
+	{ok, [#{1 := 1, 2 := "a", 3 := <<"t">>}]} = luaport:call(Pid2, asmap, [[1, "a", <<"t">>]]),
 	%port.aslist
 	{ok, [[]]} = luaport:call(Pid2, aslist, [#{2 => 2, 4 => 4}]),
 	{ok, [[2]]} = luaport:call(Pid2, aslist, [#{1 => 2, 4 => 4}]),
 	{ok, [[2, 4]]} = luaport:call(Pid2, aslist, [#{1 => 2, 2 => 4}]),
-	%only succeeds with LUAP_UNDEFINED_AS_NIL set
-	%{ok, [[2]]} = luaport:call(Pid2, aslist, [#{1 => 2, 2 => undefined}]),
 	%port.astuple
 	{ok, [{}]} = luaport:call(Pid2, astuple, [#{2 => 2, 4 => 4}]),
 	{ok, [{2}]} = luaport:call(Pid2, astuple, [#{1 => 2, 4 => 4}]),
 	{ok, [{2, 4}]} = luaport:call(Pid2, astuple, [#{1 => 2, 2 => 4}]),
-	%port.astuplelist
-	{ok, [TupleList]} = luaport:call(Pid2, astuplelist, [#{2 => 2, <<"a">> => 4, true => 42}]),
-	case lists:keysort(1, TupleList) of
-		[{2, 2}, {true, 42}, {<<"a">>, 4}] -> ok
-	end,
-	%port.toatom
-	{ok, [string]} = luaport:call(Pid2, toatom, [<<"string">>]),
-	%tostring(atom)
-	{ok, [<<"atom">>]} = luaport:call(Pid2, calltostring, [atom]),
 	ok = luaport:despawn(<<"name">>),
 	ok = luaport:despawn(42),
 	ok = application:stop(luaport).
