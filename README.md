@@ -81,7 +81,7 @@ The following applies when compiled with LUAP_UNDEFINED_AS_NIL set.
 | --- | --- |
 | undefined | nil |
 
-There are several lua functions to help convert inbetween.
+There are several conversion functions to help you.
 
 | Function | Description |
 | --- | --- |
