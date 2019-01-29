@@ -65,21 +65,16 @@ Be happy!
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider. Strings in erlang are lists and handled as such. If you want to send strings, use binary strings.
 
-| Erlang | Lua |
-| --- | --- |
-| <<"string">> | 'string' |
-| [1, 2] | {1, 2} --with metatype 'list' |
-| {3, 4} | {3, 4} --with metatype 'tuple' |
-| #{2 => 4} | {[2] = 4} --with metatype 'map' |
-| true | true |
-| false | false |
-| other_atom | userdata 'atom' |
-
-The following applies when compiled with LUAP_UNDEFINED_AS_NIL set.
-
-| Erlang | Lua |
-| --- | --- |
-| undefined | nil |
+| Erlang | Lua | Notes |
+| --- | --- | --- |
+| <<"string">> | 'string' | |
+| [1, 2] | {1, 2} | has metatype 'list' |
+| {3, 4} | {3, 4} | has metatype 'tuple' |
+| #{2 => 4} | {[2] = 4} | has metatype 'map' |
+| true | true |  |
+| false | false |  |
+| undefined | nil | if compiled with LUAP_UNDEFINED_AS_NIL set |
+| other_atoms | userdata 'atom' |  |
 
 There are several conversion functions to help you.
 
