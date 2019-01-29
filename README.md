@@ -85,9 +85,9 @@ There are several lua functions to help convert inbetween.
 | toatom(s) | string to atom |
 | tostring(a) | atom to string |
 
-Also there exist some testfunctions since maps, lists and tuples are really tables and have the same lua type `type(t) == 'table'` (Otherwise they could not be used in lua's standard functions).
+Also there exist some testfunctions since maps, lists and tuples are really tables and have the same lua type `type(t) == 'table'`. Otherwise they could not be used in lua's standard functions.
 
 - islist(t)
-- ismap(t)
 - istuple(t)
+- ismap(t)
 - isatom(a)
