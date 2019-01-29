@@ -69,5 +69,5 @@ case1(_Config) ->
 test_call(A) ->
 	[A].
 
-test_cast(A) ->
+test_cast(_A) ->
 	ok.
