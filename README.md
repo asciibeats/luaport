@@ -75,6 +75,12 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | false | false |
 | other_atom | userdata 'atom' |
 
+The following applies when compiled with LUAP_UNDEFINED_AS_NIL set.
+
+| Erlang | Lua |
+| --- | --- |
+| undefined | nil |
+
 There are several lua functions to help convert inbetween.
 
 | Function | Description |
@@ -87,7 +93,9 @@ There are several lua functions to help convert inbetween.
 
 Also there exist some testfunctions since maps, lists and tuples are really tables in lua and have the same lua type `type(t) == 'table'`. Otherwise they could not be used in lua's standard functions.
 
-- islist(t)
-- istuple(t)
-- ismap(t)
-- isatom(a)
+| Function |
+| --- |
+| islist(v) |
+| istuple(v) |
+| ismap(v) |
+| isatom(v) |
