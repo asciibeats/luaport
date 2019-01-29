@@ -90,5 +90,4 @@ Also there exist some testfunctions since maps, lists and tuples are really tabl
 - islist(t)
 - ismap(t)
 - istuple(t)
-
-Atoms can be tested the normal way with `type(a) == 'atom'`.
+- isatom(a)
