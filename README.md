@@ -63,22 +63,32 @@ application:stop(luaport).
 Be happy!
 
 ## Quirks
-Since erlang and lua datatypes do not align too nicely, there are some things to consider.
+Since erlang and lua datatypes do not align too nicely, there are some things to consider. Strings in erlang are lists and handled as such. If you want to send strings, use binary strings.
 
 | Erlang | Lua |
 | --- | --- |
 | <<"string">> | 'string' |
-| [1, 2] | {1, 2} --meta type 'list' |
-| {3, 4} | {3, 4} --meta type 'tuple' |
-| #{2 => 4} | {[2] = 4} --meta type 'map' |
-| atom | userdata 'atom' |
+| [1, 2] | {1, 2} --with metatype 'list' |
+| {3, 4} | {3, 4} --with metatype 'tuple' |
+| #{2 => 4} | {[2] = 4} --with metatype 'map' |
+| true | true |
+| false | false |
+| other_atom | userdata 'atom' |
 
 There are several lua functions to help convert inbetween.
 
 | Function | Description |
 | --- | --- |
-| asmap(t) | meta type 'map' |
-| aslist(t) | meta type 'list' |
-| astuple(t) | meta type 'tuple' |
+| aslist(t) | set metatype 'list' |
+| astuple(t) | set metatype 'tuple' |
+| asmap(t) | set metatype 'map' |
 | toatom(s) | string to atom |
 | tostring(a) | atom to string |
+
+Also there exist some testfunctions since maps, lists and tuples are really tables and have the same lua type `type(t) == 'table'` (Otherwise they could not be used in lua's standard functions).
+
+- islist(t)
+- ismap(t)
+- istuple(t)
+
+Atoms can be tested the normal way with `type(a) == 'atom'`.
