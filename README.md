@@ -20,7 +20,7 @@ luaport:despawn(42).
 ```
 ```lua
 function execute()
-  local results = luaport.call('divide', 3, 2)
+  local results = luaport.call.divide(3, 2)
 end
 ```
 ```erlang
