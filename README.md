@@ -68,9 +68,9 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | Erlang | Lua | Notes |
 | --- | --- | --- |
 | <<"string">> | 'string' | |
-| [1, 2] | {1, 2} | has metatype 'list' |
-| {3, 4} | {3, 4} | has metatype 'tuple' |
-| #{2 => 4} | {[2] = 4} | has metatype 'map' |
+| [1, 2] | {1, 2} | has internal metatype 'list' |
+| {3, 4} | {3, 4} | has internal metatype 'tuple' |
+| #{2 => 4} | {[2] = 4} | has internal metatype 'map' |
 | true | true |  |
 | false | false |  |
 | undefined | nil | if compiled with LUAP_UNDEFINED_AS_NIL set |
