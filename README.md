@@ -61,3 +61,24 @@ luaport:despawn("myid"),
 application:stop(luaport).
 ```
 Be happy!
+
+## Quirks
+Since erlang and lua datatypes do not align too nicely, there are some things to consider.
+
+| Erlang | Lua |
+| --- | --- |
+| <<"string">> | 'string' |
+| [1, 2] | {1, 2} --meta type 'list' |
+| {3, 4} | {3, 4} --meta type 'tuple' |
+| #{2 => 4} | {[2] = 4} --meta type 'map' |
+| atom | userdata 'atom' |
+
+There are several lua functions to help convert inbetween.
+
+| Function | Description |
+| --- | --- |
+| asmap(t) | meta type 'map' |
+| aslist(t) | meta type 'list' |
+| astuple(t) | meta type 'tuple' |
+| toatom(s) | string to atom |
+| tostring(a) | atom to string |
