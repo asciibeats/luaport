@@ -14,11 +14,14 @@
 	#include <lauxlib.h>
 #endif
 
-#define LUAP_PORTLIBNAME "luaport"
+#ifndef LUAP_BUFFER
 #define LUAP_BUFFER 512
+#endif
+
+#define LUAP_PORTLIBNAME "luaport"
 #define LUAP_CALL 0
 #define LUAP_CAST 1
-#define LUAP_TYPE_KEY "___type"
+#define LUAP_TTYPE "_ttype"
 #define LUAP_MAP 0
 #define LUAP_TUPLE 1
 #define LUAP_LIST 2
@@ -163,13 +166,16 @@ static void write_message(const char *type, const char* fmt, ...)
 	ei_x_free(&eb);
 }
 
-static void luap_tabletype(lua_State *L, int index, int type)
+static int e2l_any(const char *buf, int *index, lua_State *L);
+static void l2e_any(lua_State *L, int index, ei_x_buff *eb);
+
+static void luap_settabletype(lua_State *L, int index, int type)
 {
 	if (type == LUAP_MAP)
 	{
 		if (lua_getmetatable(L, index))
 		{
-			lua_pushfstring(L, LUAP_TYPE_KEY);
+			lua_pushfstring(L, LUAP_TTYPE);
 			lua_pushnil(L);
 			lua_rawset(L, -3);
 			lua_pushnil(L);
@@ -196,7 +202,7 @@ static void luap_tabletype(lua_State *L, int index, int type)
 			lua_createtable(L, 0, 1);
 		}
 
-		lua_pushfstring(L, LUAP_TYPE_KEY);
+		lua_pushfstring(L, LUAP_TTYPE);
 		lua_pushinteger(L, type);
 		lua_rawset(L, -3);
 		lua_setmetatable(L, index);
@@ -210,7 +216,69 @@ static int luap_tostring(lua_State *L)
 	return 1;
 }
 
-static int e2l_any(const char *buf, int *index, lua_State *L);
+static int luap_call_cont(lua_State *L, int status, long int ctx)
+{
+	return lua_gettop(L);
+}
+
+static int luap_call_yield(lua_State *L)
+{
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	lua_pushinteger(L, LUAP_CALL);
+	return lua_yieldk(L, lua_gettop(L), 0, luap_call_cont);
+}
+
+static int luap_call_index(lua_State *L)
+{
+	lua_pushcclosure(L, &luap_call_yield, 1);
+	return 1;
+}
+
+static int luap_cast_cont(lua_State *L, int status, long int ctx)
+{
+	return 0;
+}
+
+static int luap_cast_yield(lua_State *L)
+{
+	lua_pushvalue(L, lua_upvalueindex(1));
+	lua_insert(L, 1);
+	lua_pushinteger(L, LUAP_CAST);
+	return lua_yieldk(L, lua_gettop(L), 0, luap_cast_cont);
+}
+
+static int luap_cast_index(lua_State *L)
+{
+	lua_pushcclosure(L, &luap_cast_yield, 1);
+	return 1;
+}
+
+static int luap_print(lua_State *L)
+{
+	int i, top = lua_gettop(L);
+
+	for (i = 1; i <= top; i++)
+	{
+		luaL_checkany(L, i);
+	}
+
+	ei_x_buff eb;
+	ei_x_new_with_version(&eb);
+	ei_x_encode_tuple_header(&eb, 2);
+	ei_x_encode_atom(&eb, "info");
+	ei_x_encode_list_header(&eb, top);
+
+	for (i = 1; i <= top; i++)
+	{
+		l2e_any(L, i, &eb);
+	}
+
+	ei_x_encode_empty_list(&eb);
+	write_term(&eb);
+	ei_x_free(&eb);
+	return 0;
+}
 
 static int e2l_long(const char *buf, int *index, lua_State *L)
 {
@@ -253,7 +321,7 @@ static int e2l_string(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, size, 0);
-	luap_tabletype(L, -1, LUAP_LIST);
+	luap_settabletype(L, -1, LUAP_LIST);
 
 	for (int i = 0; i < size; i++)
 	{
@@ -328,7 +396,7 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, arity, 0);
-	luap_tabletype(L, -1, LUAP_TUPLE);
+	luap_settabletype(L, -1, LUAP_TUPLE);
 
 	for (int i = 1; i <= arity; i++)
 	{
@@ -349,7 +417,7 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 	}
 
 	lua_createtable(L, arity, 0);
-	luap_tabletype(L, -1, LUAP_LIST);
+	luap_settabletype(L, -1, LUAP_LIST);
 
 	for (int i = 1; i <= arity; i++)
 	{
@@ -364,7 +432,7 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 static int e2l_emptylist(const char *buf, int *index, lua_State *L)
 {
 	lua_createtable(L, 0, 0);
-	luap_tabletype(L, -1, LUAP_LIST);
+	luap_settabletype(L, -1, LUAP_LIST);
 	ei_skip_term(buf, index);
 	return 0;
 }
@@ -472,8 +540,6 @@ static int e2l_any(const char *buf, int *index, lua_State *L)
 	return 0;
 }
 
-static void l2e_any(lua_State *L, int index, ei_x_buff *eb);
-
 static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
 {
 	lua_Integer integer = lua_tointeger(L, index);
@@ -580,7 +646,7 @@ static void l2e_table_tuplelist(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
 {
-	if (luaL_getmetafield(L, index, LUAP_TYPE_KEY) != LUA_TNIL)
+	if (luaL_getmetafield(L, index, LUAP_TTYPE) != LUA_TNIL)
 	{
 		lua_Integer type = lua_tointeger(L, -1);
 		lua_pop(L, 1);
@@ -606,13 +672,13 @@ static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_range_list(lua_State *L, int from, int to, ei_x_buff *eb)
 {
-	int count = to - from;
+	int range = to - from;
 
-	if (count > 0)
+	if (range >= 0)
 	{
-		ei_x_encode_list_header(eb, count);
+		ei_x_encode_list_header(eb, range + 1);
 
-		for (int i = from; i < to; i++)
+		for (int i = from; i <= to; i++)
 		{
 			l2e_any(L, i, eb);
 		}
@@ -652,92 +718,42 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 		case LUA_TBOOLEAN:
 			l2e_boolean(L, index, eb);
 			break;
-		/*case LUA_TNIL:
-			ei_x_encode_atom(eb, "undefined");
-			break;*/
 		case LUA_TUSERDATA:
 			l2e_userdata_atom(L, index, eb);
+			break;
+		case LUA_TNIL:
+			ei_x_encode_atom(eb, "undefined");
 			break;
 		/*default:
 			ei_x_encode_atom(eb, "unsupported");*/
 	}
 }
 
-static int luaport_call_cont(lua_State *L, int status, long int ctx)
-{
-	return lua_gettop(L);
-}
-
-static int luaport_call(lua_State *L)
-{
-	luaL_checktype(L, 1, LUA_TSTRING);
-	lua_pushinteger(L, LUAP_CALL);
-	return lua_yieldk(L, lua_gettop(L), 0, luaport_call_cont);
-}
-
-static int luaport_cast_cont(lua_State *L, int status, long int ctx)
-{
-	return 0;
-}
-
-static int luaport_cast(lua_State *L)
-{
-	luaL_checktype(L, 1, LUA_TSTRING);
-	lua_pushinteger(L, LUAP_CAST);
-	return lua_yieldk(L, lua_gettop(L), 0, luaport_cast_cont);
-}
-
-static int luaport_info(lua_State *L)
-{
-	int i, top = lua_gettop(L);
-
-	for (i = 1; i <= top; i++)
-	{
-		luaL_checkany(L, i);
-	}
-
-	ei_x_buff eb;
-	ei_x_new_with_version(&eb);
-	ei_x_encode_tuple_header(&eb, 2);
-	ei_x_encode_atom(&eb, "info");
-	ei_x_encode_list_header(&eb, top);
-
-	for (i = 1; i <= top; i++)
-	{
-		l2e_any(L, i, &eb);
-	}
-
-	ei_x_encode_empty_list(&eb);
-	write_term(&eb);
-	ei_x_free(&eb);
-	return 0;
-}
-
 static int luaport_asmap(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_tabletype(L, 1, LUAP_MAP);
+	luap_settabletype(L, 1, LUAP_MAP);
 	return 1;
 }
 
 static int luaport_astuple(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_tabletype(L, 1, LUAP_TUPLE);
+	luap_settabletype(L, 1, LUAP_TUPLE);
 	return 1;
 }
 
 static int luaport_aslist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_tabletype(L, 1, LUAP_LIST);
+	luap_settabletype(L, 1, LUAP_LIST);
 	return 1;
 }
 
 static int luaport_astuplelist(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
-	luap_tabletype(L, 1, LUAP_TUPLELIST);
+	luap_settabletype(L, 1, LUAP_TUPLELIST);
 	return 1;
 }
 
@@ -753,9 +769,6 @@ static int luaport_toatom(lua_State *L)
 }
 
 static const struct luaL_Reg luaport_func[] = {
-	{"call", luaport_call},
-	{"cast", luaport_cast},
-	{"info", luaport_info},
 	{"asmap", luaport_asmap},
 	{"astuple", luaport_astuple},
 	{"aslist", luaport_aslist},
@@ -773,11 +786,26 @@ static int luaopen_luaport(lua_State *L)
 {
 	luaL_newmetatable(L, LUAP_TATOM);
 	luaL_setfuncs(L, atom_meta, 0);
-	lua_pushcfunction(L, luaport_info);
+
+	lua_pushcfunction(L, luap_print);
 	lua_setglobal(L, "print");
+
 	lua_newtable(L);
 	lua_setglobal(L, "state");
+
 	luaL_newlib(L, luaport_func);
+	lua_newtable(L);
+	lua_createtable(L, 0, 1);
+	lua_pushcfunction(L, luap_call_index);
+	lua_setfield(L, -2, "__index");
+	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, "call");
+	lua_newtable(L);
+	lua_createtable(L, 0, 1);
+	lua_pushcfunction(L, luap_cast_index);
+	lua_setfield(L, -2, "__index");
+	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, "cast");
 	return 1;
 }
 
@@ -893,6 +921,7 @@ int main(int argc, char *argv[])
 		else if (status == LUA_YIELD)
 		{
 			int yield = lua_tointeger(L, -1);
+			lua_pop(L, 1);
 
 			if (yield == LUAP_CALL)
 			{

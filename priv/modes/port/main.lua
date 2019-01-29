@@ -1,25 +1,25 @@
-function call(...)
-	return luaport.call(...)
+function call(name, ...)
+	return luaport.call[name](...)
 end
 
-function cast(...)
-	return luaport.cast(...)
+function cast(name, ...)
+	luaport.cast[name](...)
 end
 
 function info(...)
-	luaport.info(...)
-end
-
-function callprint(...)
 	print(...)
 end
 
-function calltostring(o)
-	return tostring(o)
+function calltostring(v)
+	return tostring(v)
 end
 
 function getstate()
 	return state
+end
+
+function getnil()
+	return nil
 end
 
 function asmap(t)

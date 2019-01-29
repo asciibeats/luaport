@@ -17,16 +17,16 @@ case1(_Config) ->
 	{error, callback_undefined} = luaport:call(Pid1, call, [<<"test_call">>, <<"hallo">>]),
 	%spawn with a callback
 	{ok, Pid2} = luaport:spawn(<<"name">>, Path, ?MODULE),
-	%check if global table 'state' exists
+	%if global table 'state' exists
 	{ok, [#{}]} = luaport:call(Pid2, getstate),
-	%check if global function 'print' is replace with port.info
-	{ok, []} = luaport:call(Pid2, callprint, ["this message was send by calling print()"]),
+	%if nil is translated to undefined
+	{ok, [undefined]} = luaport:call(Pid2, getnil),
 	%port.call
 	{ok, [<<"ö">>]} = luaport:call(Pid2, call, [<<"test_call">>, <<"ö">>]),
 	{ok, [<<"ö"/utf8>>]} = luaport:call(Pid2, call, [<<"test_call">>, <<"ö"/utf8>>]),
 	%port.cast
 	{ok, []} = luaport:call(Pid2, cast, [<<"test_cast">>, foo]),
-	%port.info
+	%custom print replacement
 	{ok, []} = luaport:call(Pid2, info, ["info", {1, 1.0, <<"string">>, #{}, [], {}}]),
 	%port.asmap
 	{ok, [#{1 := 1, 2 := a, 3 := <<"t">>}]} = luaport:call(Pid2, asmap, [[1, a, <<"t">>]]),
