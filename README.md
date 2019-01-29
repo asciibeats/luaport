@@ -91,7 +91,7 @@ There are several conversion functions to help you.
 | toatom(s) | string to atom |
 | tostring(a) | atom to string |
 
-Also there exist some testfunctions since maps, lists and tuples are really tables in lua and have the same lua type `type(t) == 'table'`. Otherwise they could not be used in lua's standard functions.
+Also there exist some test functions since maps, lists and tuples are really tables in lua and have the same lua type. Otherwise they could not be used in lua's standard functions.
 
 | Function |
 | --- |
