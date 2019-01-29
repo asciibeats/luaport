@@ -22,6 +22,18 @@ function getnil()
 	return nil
 end
 
+function ismap(t)
+	return luaport.ismap(t)
+end
+
+function islist(t)
+	return luaport.islist(t)
+end
+
+function istuple(t)
+	return luaport.istuple(t)
+end
+
 function asmap(t)
 	return luaport.asmap(t)
 end

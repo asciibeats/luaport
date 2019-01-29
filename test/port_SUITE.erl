@@ -28,6 +28,16 @@ case1(_Config) ->
 	{ok, []} = luaport:call(Pid2, cast, [<<"test_cast">>, foo]),
 	%custom print replacement
 	{ok, []} = luaport:call(Pid2, info, ["info", {1, 1.0, <<"string">>, #{}, [], {}}]),
+	%port.ismap
+	{ok, [true]} = luaport:call(Pid2, ismap, [#{}]),
+	{ok, [false]} = luaport:call(Pid2, ismap, [[]]),
+	{ok, [false]} = luaport:call(Pid2, ismap, [12]),
+	%port.islist
+	{ok, [true]} = luaport:call(Pid2, islist, [[]]),
+	{ok, [false]} = luaport:call(Pid2, islist, [#{}]),
+	%port.istuple
+	{ok, [true]} = luaport:call(Pid2, istuple, [{}]),
+	{ok, [false]} = luaport:call(Pid2, istuple, [#{}]),
 	%port.asmap
 	{ok, [#{1 := 1, 2 := a, 3 := <<"t">>}]} = luaport:call(Pid2, asmap, [[1, a, <<"t">>]]),
 	%port.aslist

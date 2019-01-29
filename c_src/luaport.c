@@ -209,6 +209,32 @@ static void luap_settabletype(lua_State *L, int index, int type)
 	}
 }
 
+static int luap_istabletype(lua_State *L, int index, int type)
+{
+	if (!lua_istable(L, index))
+	{
+		return 0;
+	}
+
+	if (lua_getmetatable(L, index))
+	{
+		lua_pushstring(L, LUAP_TTYPE);
+
+		if (lua_rawget(L, -2) != LUA_TNIL)
+		{
+			return type == lua_tointeger(L, -1);
+		}
+		else
+		{
+			return type == LUAP_MAP;
+		}
+	}
+	else
+	{
+		return type == LUAP_MAP;
+	}
+}
+
 static int luap_tostring(lua_State *L)
 {
 	char *atom = luap_checkatom(L, 1);
@@ -729,6 +755,30 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 	}
 }
 
+static int luaport_islist(lua_State *L)
+{
+	lua_pushboolean(L, luap_istabletype(L, 1, LUAP_LIST));
+	return 1;
+}
+
+static int luaport_istuplelist(lua_State *L)
+{
+	lua_pushboolean(L, luap_istabletype(L, 1, LUAP_TUPLELIST));
+	return 1;
+}
+
+static int luaport_istuple(lua_State *L)
+{
+	lua_pushboolean(L, luap_istabletype(L, 1, LUAP_TUPLE));
+	return 1;
+}
+
+static int luaport_ismap(lua_State *L)
+{
+	lua_pushboolean(L, luap_istabletype(L, 1, LUAP_MAP));
+	return 1;
+}
+
 static int luaport_asmap(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -769,6 +819,11 @@ static int luaport_toatom(lua_State *L)
 }
 
 static const struct luaL_Reg luaport_func[] = {
+	{"ismap", luaport_ismap},
+	{"istuple", luaport_istuple},
+	{"islist", luaport_islist},
+	{"istuplelist", luaport_istuplelist},
+	//{"isatom", luaport_isatom},
 	{"asmap", luaport_asmap},
 	{"astuple", luaport_astuple},
 	{"aslist", luaport_aslist},
