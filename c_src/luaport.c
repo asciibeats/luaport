@@ -372,7 +372,7 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
 
 	if (ei_decode_atom(buf, index, atom))
 	{
-		exit(EXIT_BAD_ATOM);
+		return 1;
 	}
 
 	if (!strcmp(atom, "true"))
