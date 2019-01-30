@@ -68,11 +68,11 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | Erlang | Lua | Notes |
 | --- | --- | --- |
 | 23 | 23 | no surprises here |
-| <<"string">> | 'string' | |
 | "abc" | {97, 98, 99} | erlang strings are lists! |
-| [1, 2] | {1, 2} | has internal metatype 'list' |
-| {3, 4} | {3, 4} | has internal metatype 'tuple' |
-| #{2 => 4} | {[2] = 4} | has internal metatype 'map' |
+| <<"string">> | 'string' | |
+| [1, 2] | {1, 2} | has metatype 'list' |
+| {3, 4} | {3, 4} | has metatype 'tuple' |
+| #{2 => 4} | {[2] = 4} | has metatype 'map' |
 | true | true |  |
 | false | false | in fact, every atom but true is false |
 
