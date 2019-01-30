@@ -5,7 +5,7 @@
 -export([stop/1]).
 
 start(_Type, _Args) ->
-	luaport_sup:start_link().
+  luaport_sup:start_link().
 
 stop(_State) ->
-	ok.
+  ok.

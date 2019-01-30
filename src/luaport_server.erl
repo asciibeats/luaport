@@ -19,73 +19,73 @@
 -record(state, {id, callback, port}).
 
 start_link(Id, Path, Callback) ->
-	gen_server:start_link({global, Id}, ?MODULE, {Id, Path, Callback}, []).
+  gen_server:start_link({global, Id}, ?MODULE, {Id, Path, Callback}, []).
 
 stop(Pid) ->
-	gen_server:stop(Pid, shutdown, 3000).
+  gen_server:stop(Pid, shutdown, 3000).
 
 call(Pid, Name, Args, Timeout) when is_atom(Name), is_list(Args) ->
-	gen_server:call(Pid, {call, Name, Args}, Timeout).
+  gen_server:call(Pid, {call, Name, Args}, Timeout).
 
 cast(Pid, Name, Args) when is_atom(Name), is_list(Args) ->
-	gen_server:cast(Pid, {cast, Name, Args}).
+  gen_server:cast(Pid, {cast, Name, Args}).
 
 % gen_server
 init({Id, Path, Callback}) ->
-	process_flag(trap_exit, true),
-	Exec = filename:join([code:priv_dir(luaport), "luaport"]),
-	Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-	{ok, #state{id = Id, callback = Callback, port = Port}}.
+  process_flag(trap_exit, true),
+  Exec = filename:join([code:priv_dir(luaport), "luaport"]),
+  Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
+  {ok, #state{id = Id, callback = Callback, port = Port}}.
 
 handle_call({call, Name, Args}, _From, #state{port = Port} = State) ->
-	Port ! {self(), {command, term_to_binary({Name, Args})}},
-	{reply, receive_port(State), State}.
+  Port ! {self(), {command, term_to_binary({Name, Args})}},
+  {reply, receive_port(State), State}.
 
 handle_cast({cast, Name, Args}, #state{port = Port} = State) ->
-	Port ! {self(), {command, term_to_binary({Name, Args})}},
-	{ok, _} = receive_port(State),
-	{noreply, State}.
+  Port ! {self(), {command, term_to_binary({Name, Args})}},
+  {ok, _} = receive_port(State),
+  {noreply, State}.
 
 handle_info({_Port, {exit_status, Code}}, State) ->
-	{stop, maps:get(Code, ?EXIT_STATUS, Code), State};
+  {stop, maps:get(Code, ?EXIT_STATUS, Code), State};
 handle_info({'EXIT', _Port, Reason}, State) ->
-	{stop, Reason, State}.
+  {stop, Reason, State}.
 
 terminate(shutdown, #state{port = Port} = _State) ->
-	case port_close(Port) of
-		true -> ok
-	end.
+  case port_close(Port) of
+    true -> ok
+  end.
 
 code_change(_OldVsn, State, _Extra) ->
-	{ok, State}.
+  {ok, State}.
 
 receive_port(#state{port = Port} = State) ->
-	receive 
-		{Port, {data, Data}} -> 
-			case binary_to_term(Data, [safe]) of
-				{call, {Func, Args}} ->
-					case State#state.callback of
-						undefined ->
-							{error, callback_undefined};
-						Module ->
-							Port ! {self(), {command, term_to_binary({apply(Module, Func, Args)})}},
-							receive_port(State)
-					end;
-				{cast, {Func, Args}} ->
-					case State#state.callback of
-						undefined ->
-							{error, callback_undefined};
-						Module ->
-							apply(Module, Func, Args),
-							receive_port(State)
-					end;
-				{info, List} -> 
-					io:format("~ninf ~p ~p", [Port, List]),
-					receive_port(State);
-				{error, Reason} ->
-					io:format("~nerr ~p ~p", [Port, Reason]),
-					{error, Reason};
-				{ok, Results} ->
-					{ok, Results}
-			end
-	end.
+  receive 
+    {Port, {data, Data}} -> 
+      case binary_to_term(Data, [safe]) of
+        {call, {Func, Args}} ->
+          case State#state.callback of
+            undefined ->
+              {error, callback_undefined};
+            Module ->
+              Port ! {self(), {command, term_to_binary({apply(Module, Func, Args)})}},
+              receive_port(State)
+          end;
+        {cast, {Func, Args}} ->
+          case State#state.callback of
+            undefined ->
+              {error, callback_undefined};
+            Module ->
+              apply(Module, Func, Args),
+              receive_port(State)
+          end;
+        {info, List} -> 
+          io:format("~ninf ~p ~p", [Port, List]),
+          receive_port(State);
+        {error, Reason} ->
+          io:format("~nerr ~p ~p", [Port, Reason]),
+          {error, Reason};
+        {ok, Results} ->
+          {ok, Results}
+      end
+  end.
