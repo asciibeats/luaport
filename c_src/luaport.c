@@ -133,24 +133,24 @@ static int write_term(ei_x_buff *eb)
 static void write_format(const char* fmt, ...)
 {
   va_list args;
-  va_start(args, fmt);
   ei_x_buff eb;
   ei_x_new(&eb);
+  va_start(args, fmt);
   ei_x_format(&eb, fmt, args);
+  va_end(args);
 
   write_term(&eb);
   ei_x_free(&eb);
-  va_end(args);
 }
 
 static void write_message(const char *type, const char* fmt, ...)
 {
-  va_list ap;
-  va_start(ap, fmt);
-  int len = vsnprintf(NULL, 0, fmt, ap) + 1;
+  va_list args;
+  va_start(args, fmt);
+  int len = vsnprintf(NULL, 0, fmt, args) + 1;
   char msg[len];
-  vsnprintf(msg, len, fmt, ap);
-  va_end(ap);
+  vsnprintf(msg, len, fmt, args);
+  va_end(args);
 
   ei_x_buff eb;
   ei_x_new(&eb);
