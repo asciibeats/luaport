@@ -40,13 +40,13 @@ rebar3 ct
 ```
 
 ## Use
-I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your *rebar.config*.
+I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your rebar.config.
 ```erlang
 {deps, [
   {luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
 ]}.
 ```
-Create a lua script at *path/to/scripts* called *main.lua*.
+Create a lua script at path/to/scripts called main.lua.
 ```lua
 function subtract(a, b)
   return a - b
@@ -63,31 +63,31 @@ application:stop(luaport).
 Be happy!
 
 ## Quirks
-Since erlang and lua datatypes do not align too nicely, there are some things to consider. Strings in erlang are lists and handled as such. If you want to send strings, use binary strings.
+Since erlang and lua datatypes do not align too nicely, there are some things to consider.
+
+-Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua, per default, they become tables.
+-When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
+-Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
+-Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
 
 | Erlang | Lua | Notes |
 | --- | --- | --- |
 | 23 | 23 | |
-| "abc" | {97, 98, 99} | erlang strings are lists! |
+| "abc" | {97, 98, 99} | erlang strings are lists |
 | <<"abc">> | 'abc' | |
 | [1, 2] | {1, 2} | has metatype 'list' |
 | {3, 4} | {3, 4} | has metatype 'tuple' |
-| #{5 => 6} | {[5] = 6} | has metatype 'map' |
+| #{5 => 6} | {[5] = 6} | has no metatype |
 | true | true |  |
-| false | false | in fact, every atom but true is false |
+| others | false | every atom but true is false |
 
-There are three conversion functions to help you.
+There are some conversion and check functions to help you:
 
 | Function | Description |
 | --- | --- |
 | aslist(t) | set metatype 'list' |
 | astuple(t) | set metatype 'tuple' |
-| asmap(t) | set metatype 'map' |
-
-Also there exist three test functions since maps, lists and tuples are really tables in lua and have the same lua type. Otherwise they could not be used in lua's standard functions.
-
-| Function |
-| --- |
-| islist(v) |
-| istuple(v) |
-| ismap(v) |
+| asmap(t) | unset metatype |
+| islist(v) | if metatype 'list' |
+| istuple(v) | if metatype 'tuple' |
+| ismap(v) | if no metatype |
