@@ -33,7 +33,7 @@ end
 divide(atom, A, B) ->
   [A / B].
 ```
-Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path.
+Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
 ```lua
 local module = require('module')
 ```
