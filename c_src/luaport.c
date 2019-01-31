@@ -148,11 +148,7 @@ static void write_message(const char *type, const char* fmt, ...)
   va_list ap;
   va_start(ap, fmt);
   int len = vsnprintf(NULL, 0, fmt, ap) + 1;
-  va_end(ap);
-
   char msg[len];
-
-  va_start(ap, fmt);
   vsnprintf(msg, len, fmt, ap);
   va_end(ap);
 
@@ -785,6 +781,8 @@ int main(int argc, char *argv[])
   int nargs;
   int status;
   ei_x_buff eb;
+
+  write_info("hallo");
 
   ei_x_new(&eb);
   lua_State *L = luaL_newstate();
