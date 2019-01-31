@@ -45,7 +45,7 @@ static void write_message(const char *type, const char* fmt, ...);
 static int e2l_any(const char *buf, int *index, lua_State *L);
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb);
 
-static inline size_t read4(char* buf)
+static inline uint32_t read4(char* buf)
 {
   return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
@@ -772,8 +772,6 @@ int main(int argc, char *argv[])
   int nargs;
   int status;
   ei_x_buff eb;
-
-  write_info("hallo");
 
   ei_x_new(&eb);
   lua_State *L = luaL_newstate();
