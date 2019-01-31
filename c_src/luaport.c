@@ -177,12 +177,9 @@ static void luap_setmetatype(lua_State *L, int index, int type)
 
       if (!lua_next(L, -2))
       {
+        lua_pop(L, 2);
         lua_pushnil(L);
         lua_setmetatable(L, index);
-      }
-      else
-      {
-        lua_pop(L, 2);
       }
 
       lua_pop(L, 1);
