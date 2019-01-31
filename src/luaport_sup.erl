@@ -3,7 +3,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([spawn/3]).
+-export([spawn/2]).
 -export([respawn/1]).
 -export([despawn/1]).
 
@@ -13,8 +13,8 @@ start_link() ->
 init(_Args) ->
   {ok, {{one_for_one, 10, 10}, []}}.
 
-spawn(Id, Path, Callback) ->
-  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Id, Path, Callback]}, permanent, 5000, worker, [luaport_server]}).
+spawn(Id, Path) ->
+  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Path]}, permanent, 5000, worker, [luaport_server]}).
 
 respawn(Id) ->
   supervisor:restart_child(?MODULE, Id).
