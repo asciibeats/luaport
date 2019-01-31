@@ -65,10 +65,13 @@ Be happy!
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
-- Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables.
-- When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
-- Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
-- Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
+Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables. 
+
+When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
+
+Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
+
+Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
 
 | Erlang | Lua | Notes |
 | --- | --- | --- |
