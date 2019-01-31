@@ -65,14 +65,12 @@ Be happy!
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
-Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables. 
+- Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables. 
+- When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
+ -Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
+- Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
 
-When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
-
-Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
-
-Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
-
+#### Translations
 | Erlang | Lua | Notes |
 | --- | --- | --- |
 | 23 | 23 | |
@@ -82,10 +80,9 @@ Erlang has no boolean type and atoms serve no purpose in lua context. So the ato
 | {3, 4} | {3, 4} | has metatype 'tuple' |
 | #{5 => 6} | {[5] = 6} | has no metatype |
 | true | true |  |
-| others | false | every atom but true is false |
+| false | false | in fact, every atom but true is false |
 
-There are some conversion and check functions to help you:
-
+#### Helpers
 | Function | Description |
 | --- | --- |
 | aslist(t) | set metatype 'list' |
