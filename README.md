@@ -1,5 +1,5 @@
 # LuaPort
-*An erlang port for scripting application logic in lua*
+*An [erlang port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua*
 
 Supported datatypes are: Numbers, Strings, Binaries, Lists, Tuples, Maps and Atoms true and false.
 ```erlang
@@ -46,7 +46,7 @@ rebar3 ct
 ```
 
 ## Use
-I presume you use [rebar3](https://www.rebar3.org). Just add luaport as dependency to your rebar.config.
+I presume you use [rebar3](https://www.rebar3.org). Just add LuaPort as dependency to your rebar.config.
 ```erlang
 {deps, [
   {luaport, {git, "https://github.com/asciibeats/luaport.git", {branch, "master"}}}
@@ -97,3 +97,14 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | islist(v) | if metatype 'list' |
 | istuple(v) | if metatype 'tuple' |
 | ismap(v) | if no metatype |
+
+## Help
+It is very much appreciated. What i could use help with:
+
+- Just trying out LuaPort and seeing if i made sensible choices
+- Finding and fixing bugs
+- Writing a more versatile makefile
+- Maybe writing better english
+- Things i dont know i need help with
+
+Thanks!
