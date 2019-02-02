@@ -91,12 +91,12 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 #### Helpers
 | Function | Description |
 | --- | --- |
-| aslist(t) | set metatype 'list' |
-| astuple(t) | set metatype 'tuple' |
-| asmap(t) | unset metatype |
-| islist(v) | if metatype 'list' |
-| istuple(v) | if metatype 'tuple' |
-| ismap(v) | if no metatype |
+| luaport.aslist(t) | set metatype 'list' |
+| luaport.astuple(t) | set metatype 'tuple' |
+| luaport.asmap(t) | unset metatype |
+| luaport.islist(v) | if metatype 'list' |
+| luaport.istuple(v) | if metatype 'tuple' |
+| luaport.ismap(v) | if no metatype |
 
 ## Help
 It is very much appreciated. What i could use help with:
