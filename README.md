@@ -105,6 +105,6 @@ It is very much appreciated. What i could use help with:
 - Finding and fixing bugs
 - Writing a more versatile makefile
 - Maybe writing better english
-- Things i dont know i need help with
+- Things i don't know i need help with
 
 Thanks!
