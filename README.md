@@ -107,4 +107,4 @@ It is very much appreciated. What i could use help with:
 - Maybe writing better english
 - Things i don't know i need help with
 
-Thanks!
+Thank you!
