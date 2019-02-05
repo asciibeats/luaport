@@ -310,11 +310,10 @@ static int e2l_string(const char *buf, int *index, lua_State *L)
   int size;
 
   ei_get_type(buf, index, &type, &size);
-  char *str = (char*)malloc(size + 1);
+  char str[size + 1];
 
   if (ei_decode_string(buf, index, str))
   {
-    free(str);
     return 1;
   }
 
@@ -327,7 +326,6 @@ static int e2l_string(const char *buf, int *index, lua_State *L)
     lua_rawseti(L, -2, i + 1);
   }
 
-  free(str);
   return 0;
 }
 
@@ -337,16 +335,14 @@ static int e2l_binary(const char *buf, int *index, lua_State *L)
   long size = 0;
 
   ei_get_type(buf, index, &type, (int *)&size);
-  char *str = (char*)malloc(size);
+  char str[size];
 
   if (ei_decode_binary(buf, index, str, &size))
   {
-    free(str);
     return 1;
   }
 
   lua_pushlstring(L, str, size);
-  free(str);
   return 0;
 }
 
@@ -465,11 +461,10 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
   }
   else if (type == ERL_STRING_EXT)
   {
-    char *str = (char*)malloc(*nargs + 1);
+    char str[*nargs + 1];
 
     if (ei_decode_string(buf, index, str))
     {
-      free(str);
       return 2;
     }
     
@@ -478,7 +473,6 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
       lua_pushinteger(L, str[i]);
     }
 
-    free(str);
     return 0;
   }
   else if (type == ERL_NIL_EXT)
@@ -758,7 +752,7 @@ static int luaopen_luaport(lua_State *L)
 int main(int argc, char *argv[])
 {
   size_t buf_size = LUAP_BUFFER;
-  char *buf = (char *)malloc(buf_size);
+  char *buf = (char *)malloc(LUAP_BUFFER);
 
   if (buf == NULL)
   {
@@ -805,12 +799,7 @@ int main(int argc, char *argv[])
       exit(EXIT_BAD_TUPLE);
     }
 
-    if (arity < 1 || arity > 2)
-    {
-      exit(EXIT_WRONG_ARITY);
-    }
-
-    if (arity == 2)//call
+    if (arity == 2)
     {
       if (ei_decode_atom(buf, &index, func))
       {
@@ -821,6 +810,10 @@ int main(int argc, char *argv[])
       {
         exit(EXIT_BAD_FUNC);
       }
+    }
+    else if (arity != 1)
+    {
+      exit(EXIT_WRONG_ARITY);
     }
 
     if (e2l_args(buf, &index, L, &nargs))
