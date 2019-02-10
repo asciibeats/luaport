@@ -12,11 +12,11 @@ function multiply(a, b)
   return a * b
 end
 ```
-Lua functions can also be called or cast with a callback module to be able to call or cast erlang functions from lua context. The elements of the second list are not interpreted by the port and become the first arguments when calling or casting back. The number is a timeout in milliseconds.
+Luaports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The list's elements are not interpreted by the port and become the first arguments when calling or casting back.
 ```erlang
-{ok, Pid} = luaport:spawn(42, "path/to/scripts"),
-{ok, Results} = luaport:call(Pid, execute, [], 1000, callback, [atom]),
-luaport:cast(Pid, execute, [], callback, [atom]),
+{ok, Pid} = luaport:spawn(42, "path/to/scripts", callback, [atom]),
+{ok, Results} = luaport:call(Pid, execute, []),
+luaport:cast(Pid, execute, []),
 luaport:despawn(42).
 ```
 ```lua
