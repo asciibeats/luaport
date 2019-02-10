@@ -1,83 +1,104 @@
 -module(luaport_server).
--behaviour(gen_server).
 
--export([start_link/1]).
--export([stop/1]).
--export([call/6]).
--export([cast/5]).
+-export([start_link/6]).
+-export([init/6]).
+-export([call/4]).
+-export([cast/4]).
 
-% gen_server
--export([init/1]).
--export([handle_call/3]).
--export([handle_cast/2]).
--export([handle_info/2]).
--export([terminate/2]).
--export([code_change/3]).
+-define(TIMEOUT, 5000).
+-define(RESTART, 200).
 
--define(EXIT_STATUS, #{199 => bad_main, 200 => bad_version, 201 => bad_tuple, 202 => bad_atom, 203 => bad_args, 204 => bad_func, 205 => bad_string, 206 => wrong_arity, 207 => wrong_status, 208 => fail_read, 209 => fail_write, 210 => fail_alloc}).
+-define(EXIT_REASONS, #{
+  0 => {shutdown, success},
+  139 => {respawn, segmentation_fault},
+  141 => {respawn, broken_pipe},
 
-start_link(Path) ->
-  gen_server:start_link(?MODULE, Path, []).
+  200 => {respawn, fail_read},
+  201 => {respawn, fail_write},
 
-stop(Pid) ->
-  gen_server:stop(Pid, shutdown, 3000).
+  210 => {respawn, init_buffer},
+  211 => {respawn, init_main},
+  212 => {respawn, init_read},
+  213 => {respawn, init_version},
+  214 => {respawn, init_func},
+  215 => {respawn, init_options},
+  216 => {respawn, init_call},
 
-call(Pid, Name, Args, Timeout, Callback, Pipe) when is_atom(Name), is_list(Args), is_list(Pipe) ->
-  gen_server:call(Pid, {call, Name, Args, Callback, Pipe}, Timeout).
+  220 => {respawn, bad_version},
+  221 => {respawn, bad_command},
+  222 => {respawn, bad_atom},
+  223 => {respawn, bad_func},
+  224 => {respawn, bad_args},
 
-cast(Pid, Name, Args, Callback, Pipe) when is_atom(Name), is_list(Args), is_atom(Callback), is_list(Pipe) ->
-  gen_server:cast(Pid, {cast, Name, Args, Callback, Pipe}).
+  230 => {respawn, call_read},
+  231 => {respawn, call_args}}).
 
-% gen_server
-init(Path) ->
+start_link(Id, Path, Options, M, Pipe, Timeout) ->
+  {ok, spawn_link(?MODULE, init, [Id, Path, Options, M, Pipe, Timeout])}.
+
+init(Id, Path, Options, M, Pipe, Timeout) when is_list(Path), is_map(Options), is_atom(M), is_list(Pipe) ->
   process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-  {ok, Port}.
+  Port ! {self(), {command, term_to_binary(Options)}},
+  {ok, []} = portloop(Id, Port, M, Pipe, Timeout),
+  mainloop(Id, Port, M, Pipe).
 
-handle_call({call, Name, Args, Callback, Pipe}, _From, Port) ->
-  Port ! {self(), {command, term_to_binary({Name, Args})}},
-  {reply, receive_port(Port, Callback, Pipe), Port}.
-
-handle_cast({cast, Name, Args, Callback, Pipe}, Port) ->
-  Port ! {self(), {command, term_to_binary({Name, Args})}},
-  receive_port(Port, Callback, Pipe),
-  {noreply, Port}.
-
-handle_info({_Port, {exit_status, Code}}, Port) ->
-  {stop, maps:get(Code, ?EXIT_STATUS, Code), Port};
-handle_info({'EXIT', _Port, Reason}, Port) ->
-  {stop, Reason, Port}.
-
-terminate(shutdown, Port) ->
-  case port_close(Port) of
-    true -> ok
+call(Pid, F, A, Timeout) when is_atom(F), is_list(A) ->
+  Ref = make_ref(),
+  Pid ! {call, self(), Ref, F, A, Timeout},
+  receive
+    {Ref, Result} -> Result
   end.
 
-code_change(_OldVsn, Port, _Extra) ->
-  {ok, Port}.
+cast(Pid, F, A, Timeout) when is_atom(F), is_list(A) ->
+  Pid ! {cast, F, A, Timeout},
+  ok.
 
-receive_port(Port, Callback, Pipe) ->
-  receive 
+mainloop(Id, Port, M, Pipe) ->
+  receive
+    {call, From, Ref, F, A, Timeout} ->
+      Port ! {self(), {command, term_to_binary({F, A})}},
+      Result = portloop(Id, Port, M, Pipe, Timeout),
+      From ! {Ref, Result},
+      mainloop(Id, Port, M, Pipe);
+    {cast, F, A, Timeout} ->
+      Port ! {self(), {command, term_to_binary({F, A})}},
+      portloop(Id, Port, M, Pipe, Timeout),
+      mainloop(Id, Port, M, Pipe);
+    {'EXIT', _From, Reason} ->
+      port_close(Port);
+    {'EXIT', Reason} ->
+      port_close(Port)
+  end.
+
+portloop(Id, Port, M, Pipe, Timeout) ->
+  receive
     {Port, {data, Data}} -> 
       case binary_to_term(Data, [safe]) of
-        {call, {Func, Args}} when Callback =/= undefined ->
-          Port ! {self(), {command, term_to_binary({apply(Callback, Func, Pipe ++ Args)})}},
-          receive_port(Port, Callback, Pipe);
-        {call, _} ->
-          {error, callback_undefined};
-        {cast, {Func, Args}} when Callback =/= undefined ->
-          apply(Callback, Func, Pipe ++ Args),
-          receive_port(Port, Callback, Pipe);
-        {cast, _} ->
-          {error, callback_undefined};
+        {call, F, A} when M =/= undefined ->
+          Port ! {self(), {command, term_to_binary(apply(M, F, [Id | Pipe ++ A]))}},
+          portloop(Id, Port, M, Pipe, Timeout);
+        {call, _, _} ->
+          Port ! {self(), {command, term_to_binary([])}},
+          portloop(Id, Port, M, Pipe, Timeout);
+        {cast, F, A} when M =/= undefined ->
+          apply(M, F, [Id | Pipe ++ A]),
+          portloop(Id, Port, M, Pipe, Timeout);
+        {cast, _, _} ->
+          portloop(Id, Port, M, Pipe, Timeout);
         {info, List} -> 
-          io:format("~ninf ~p ~p", [Port, List]),
-          receive_port(Port, Callback, Pipe);
+          io:format("inf ~p ~p~n", [Port, List]),
+          portloop(Id, Port, M, Pipe, Timeout);
         {error, Reason} ->
-          io:format("~nerr ~p ~p", [Port, Reason]),
+          io:format("err ~p ~p~n", [Port, Reason]),
           {error, Reason};
         {ok, Results} ->
           {ok, Results}
-      end
+      end;
+    {Port, {exit_status, Status}} ->
+      exit(maps:get(Status, ?EXIT_REASONS, {unknown, Status}))
+  after Timeout ->
+    io:format("err ~p ~p~n", [Port, timeout]),
+    {error, timeout}
   end.

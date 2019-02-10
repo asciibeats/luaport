@@ -1,9 +1,10 @@
-#include <ei.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ei.h>
 
 #ifdef __cplusplus
   #include <lua.hpp>
@@ -25,18 +26,25 @@
 #define LUAP_TTUPLE 1
 #define LUAP_TLIST 2
 
-#define EXIT_BAD_MAIN 199
-#define EXIT_BAD_VERSION 200
-#define EXIT_BAD_TUPLE 201
-#define EXIT_BAD_ATOM 202
-#define EXIT_BAD_ARGS 203
-#define EXIT_BAD_FUNC 204
-#define EXIT_BAD_STRING 205
-#define EXIT_WRONG_ARITY 206
-#define EXIT_WRONG_STATUS 207
-#define EXIT_FAIL_READ 208
-#define EXIT_FAIL_WRITE 209
-#define EXIT_FAIL_ALLOC 210
+#define EXIT_FAIL_READ 200
+#define EXIT_FAIL_WRITE 201
+
+#define EXIT_INIT_BUFFER 210
+#define EXIT_INIT_MAIN 211
+#define EXIT_INIT_READ 212
+#define EXIT_INIT_VERSION 213
+#define EXIT_INIT_FUNC 214
+#define EXIT_INIT_OPTIONS 215
+#define EXIT_INIT_CALL 216
+
+#define EXIT_BAD_VERSION 220
+#define EXIT_BAD_COMMAND 221
+#define EXIT_BAD_ATOM 222
+#define EXIT_BAD_FUNC 223
+#define EXIT_BAD_ARGS 224
+
+#define EXIT_CALL_READ 230
+#define EXIT_CALL_ARGS 231
 
 #define write_error(...) write_message("error", __VA_ARGS__)
 #define write_info(...) write_message("info", __VA_ARGS__)
@@ -103,22 +111,22 @@ static int write_bytes(char *buf, int len)
   return len;
 }
 
-static int read_term(char **buf, size_t *size)
+static int read_term(char *buf, int *index)
 {
-  if (read_bytes(*buf, 4) != 4)
+  if (read_bytes(buf, 4) != 4)
   {
     return -1;
   }
-  
-  size_t len = read4(*buf);
 
-  if (len > *size)
+  size_t len = read4(buf);
+
+  if (len > LUAP_BUFFER)
   {
-    *buf = (char*)realloc(*buf, len);
-    *size = len;
+    return -1;
   }
 
-  return read_bytes(*buf, len);
+  *index = 0;
+  return read_bytes(buf, len);
 }
 
 static int write_term(ei_x_buff *eb)
@@ -132,12 +140,12 @@ static int write_term(ei_x_buff *eb)
 
 static void write_format(const char* fmt, ...)
 {
-  va_list args;
+  va_list ap;
   ei_x_buff eb;
   ei_x_new(&eb);
-  va_start(args, fmt);
-  ei_x_format(&eb, fmt, args);
-  va_end(args);
+  va_start(ap, fmt);
+  ei_x_format(&eb, fmt, ap);
+  va_end(ap);
 
   write_term(&eb);
   ei_x_free(&eb);
@@ -145,18 +153,18 @@ static void write_format(const char* fmt, ...)
 
 static void write_message(const char *type, const char* fmt, ...)
 {
-  va_list args;
-  va_start(args, fmt);
-  int len = vsnprintf(NULL, 0, fmt, args) + 1;
-  char msg[len];
-  vsnprintf(msg, len, fmt, args);
-  va_end(args);
+  va_list ap;
+  char *msg;
+  va_start(ap, fmt);
+  vasprintf(&msg, fmt, ap);
+  va_end(ap);
 
   ei_x_buff eb;
   ei_x_new(&eb);
   ei_x_format(&eb, "{~a,~s}", type, msg);
 
   write_term(&eb);
+  free(msg);
   ei_x_free(&eb);
 }
 
@@ -214,71 +222,7 @@ static int luap_ismetatype(lua_State *L, int index, int type)
   }
 }
 
-static int luap_call_cont(lua_State *L, int status, long int ctx)
-{
-  return lua_gettop(L);
-}
-
-static int luap_call_yield(lua_State *L)
-{
-  lua_pushvalue(L, lua_upvalueindex(1));
-  lua_insert(L, 1);
-  lua_pushinteger(L, LUAP_CALL);
-  return lua_yieldk(L, lua_gettop(L), 0, luap_call_cont);
-}
-
-static int luap_call_index(lua_State *L)
-{
-  lua_pushcclosure(L, &luap_call_yield, 1);
-  return 1;
-}
-
-static int luap_cast_cont(lua_State *L, int status, long int ctx)
-{
-  return 0;
-}
-
-static int luap_cast_yield(lua_State *L)
-{
-  lua_pushvalue(L, lua_upvalueindex(1));
-  lua_insert(L, 1);
-  lua_pushinteger(L, LUAP_CAST);
-  return lua_yieldk(L, lua_gettop(L), 0, luap_cast_cont);
-}
-
-static int luap_cast_index(lua_State *L)
-{
-  lua_pushcclosure(L, &luap_cast_yield, 1);
-  return 1;
-}
-
-static int luap_print(lua_State *L)
-{
-  int i, top = lua_gettop(L);
-
-  for (i = 1; i <= top; i++)
-  {
-    luaL_checkany(L, i);
-  }
-
-  ei_x_buff eb;
-  ei_x_new_with_version(&eb);
-  ei_x_encode_tuple_header(&eb, 2);
-  ei_x_encode_atom(&eb, "info");
-  ei_x_encode_list_header(&eb, top);
-
-  for (i = 1; i <= top; i++)
-  {
-    l2e_any(L, i, &eb);
-  }
-
-  ei_x_encode_empty_list(&eb);
-  write_term(&eb);
-  ei_x_free(&eb);
-  return 0;
-}
-
-static int e2l_long(const char *buf, int *index, lua_State *L)
+static int e2l_integer(const char *buf, int *index, lua_State *L)
 {
   long l;
 
@@ -448,7 +392,7 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
   {
     if (ei_decode_list_header(buf, index, nargs))
     {
-      return 1;
+      return -1;
     }
 
     for (int i = 0; i < *nargs; i++)
@@ -465,7 +409,7 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
 
     if (ei_decode_string(buf, index, str))
     {
-      return 2;
+      return -1;
     }
     
     for (int i = 0; i < *nargs; i++)
@@ -481,20 +425,19 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
     return 0;
   }
 
-  return 1;
+  return -1;
 }
 
 static int e2l_any(const char *buf, int *index, lua_State *L)
 {
-  int type;
-  int size;
+  int type, size;
   ei_get_type(buf, index, &type, &size);
   
   switch (type)
   {
     case ERL_SMALL_INTEGER_EXT:
     case ERL_INTEGER_EXT:
-      return e2l_long(buf, index, L);
+      return e2l_integer(buf, index, L);
     case ERL_FLOAT_EXT:
       return e2l_float(buf, index, L);
     case ERL_STRING_EXT:
@@ -508,7 +451,7 @@ static int e2l_any(const char *buf, int *index, lua_State *L)
     case ERL_NIL_EXT:
       return e2l_emptylist(buf, index, L);
     case ERL_SMALL_TUPLE_EXT:
-    //case ERL_LARGE_TUPLE_EXT:
+    case ERL_LARGE_TUPLE_EXT:
       return e2l_tuple(buf, index, L);
     case ERL_MAP_EXT:
       return e2l_map(buf, index, L);
@@ -628,21 +571,38 @@ static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
   }
 }
 
-static void l2e_range_list(lua_State *L, int from, int to, ei_x_buff *eb)
+static void l2e_args(lua_State *L, int index, ei_x_buff *eb)
 {
-  int range = to - from;
+  int top = lua_gettop(L);
+  int range = top - index;
 
   if (range >= 0)
   {
     ei_x_encode_list_header(eb, range + 1);
 
-    for (int i = from; i <= to; i++)
+    for (int i = index; i <= top; i++)
     {
       l2e_any(L, i, eb);
     }
   }
 
   ei_x_encode_empty_list(eb);
+}
+
+static void l2e_ok(lua_State *L, int index, ei_x_buff *eb)
+{
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 2);
+  ei_x_encode_atom(eb, "ok");
+  l2e_args(L, index, eb);
+}
+
+static void l2e_error(lua_State *L, int index, ei_x_buff *eb)
+{
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 2);
+  ei_x_encode_atom(eb, "error");
+  l2e_string_binary(L, index, eb);
 }
 
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
@@ -674,6 +634,87 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
     default:
       luaL_error(L, "unsupported type");
   }
+}
+
+static int luaport_call(lua_State *L)
+{
+  char *buf = lua_touserdata(L, lua_upvalueindex(2));
+  int *index = lua_touserdata(L, lua_upvalueindex(3));
+  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(4));
+
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 3);
+  ei_x_encode_atom(eb, "call");
+
+  l2e_string_atom(L, lua_upvalueindex(1), eb);
+  l2e_args(L, 1, eb);
+
+  write_term(eb);
+
+  if (read_term(buf, index) <= 0)
+  {
+    exit(EXIT_CALL_READ);
+  }
+
+  int version;
+
+  if (ei_decode_version(buf, index, &version))
+  {
+    exit(EXIT_BAD_VERSION);
+  }
+
+  int nargs;
+
+  if (e2l_args(buf, index, L, &nargs))
+  {
+    exit(EXIT_CALL_ARGS);
+  }
+
+  return nargs;
+}
+
+static int luaport_call_index(lua_State *L)
+{
+  lua_pushvalue(L, lua_upvalueindex(1));
+  lua_pushvalue(L, lua_upvalueindex(2));
+  lua_pushvalue(L, lua_upvalueindex(3));
+  lua_pushcclosure(L, &luaport_call, 4);
+  return 1;
+}
+
+static int luaport_cast(lua_State *L)
+{
+  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
+
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 3);
+  ei_x_encode_atom(eb, "cast");
+
+  l2e_string_atom(L, lua_upvalueindex(1), eb);
+  l2e_args(L, 1, eb);
+
+  write_term(eb);
+  return 0;
+}
+
+static int luaport_cast_index(lua_State *L)
+{
+  lua_pushvalue(L, lua_upvalueindex(1));
+  lua_pushcclosure(L, &luaport_cast, 2);
+  return 1;
+}
+
+static int luaport_print(lua_State *L)
+{
+  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 2);
+  ei_x_encode_atom(eb, "info");
+
+  l2e_args(L, 1, eb);
+
+  write_term(eb);
+  return 0;
 }
 
 static int luaport_islist(lua_State *L)
@@ -727,22 +768,31 @@ static const struct luaL_Reg luaport_func[] = {
 
 static int luaopen_luaport(lua_State *L)
 {
-  lua_pushcfunction(L, luap_print);
+  char *buf = malloc(LUAP_BUFFER);
+  int index;
+  ei_x_buff *eb = malloc(sizeof(ei_x_buff));
+  ei_x_new(eb);
+
+  lua_pushlightuserdata(L, eb);
+  lua_pushcclosure(L, luaport_print, 1);
   lua_setglobal(L, "print");
 
-  lua_newtable(L);
-  lua_setglobal(L, "state");
-
   luaL_newlib(L, luaport_func);
+
   lua_newtable(L);
   lua_createtable(L, 0, 1);
-  lua_pushcfunction(L, luap_call_index);
+  lua_pushlightuserdata(L, buf);
+  lua_pushlightuserdata(L, &index);
+  lua_pushlightuserdata(L, eb);
+  lua_pushcclosure(L, luaport_call_index, 3);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "call");
+
   lua_newtable(L);
   lua_createtable(L, 0, 1);
-  lua_pushcfunction(L, luap_cast_index);
+  lua_pushlightuserdata(L, eb);
+  lua_pushcclosure(L, luaport_cast_index, 1);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "cast");
@@ -751,25 +801,23 @@ static int luaopen_luaport(lua_State *L)
 
 int main(int argc, char *argv[])
 {
-  size_t buf_size = LUAP_BUFFER;
-  char *buf = (char *)malloc(LUAP_BUFFER);
+  char *buf = malloc(LUAP_BUFFER);
 
   if (buf == NULL)
   {
-    exit(EXIT_FAIL_ALLOC);
+    exit(EXIT_INIT_BUFFER);
   }
 
-  int index = 0;
+  int index;
+  ei_x_buff eb;
+  ei_x_new(&eb);
+
   int version;
   int arity;
   char func[MAXATOMLEN];
   int nargs;
-  int status;
-  ei_x_buff eb;
 
-  ei_x_new(&eb);
   lua_State *L = luaL_newstate();
-
   luaL_requiref(L, "_G", luaopen_base, 1);
   luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
   luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
@@ -782,38 +830,62 @@ int main(int argc, char *argv[])
 
   if (luaL_dofile(L, "main.lua"))
   {
-    exit(EXIT_BAD_MAIN);
+    l2e_error(L, -1, &eb);
+    write_term(&eb);
+    exit(EXIT_INIT_MAIN);
   }
 
-  while (read_term(&buf, &buf_size) > 0)
+  if (read_term(buf, &index) <= 0)
   {
-    index = 0;
+    exit(EXIT_INIT_READ);
+  }
 
+  if (ei_decode_version(buf, &index, &version))
+  {
+    exit(EXIT_INIT_VERSION);
+  }
+
+  if (lua_getglobal(L, "init") != LUA_TFUNCTION)
+  {
+    exit(EXIT_INIT_FUNC);
+  }
+
+  if (e2l_map(buf, &index, L))
+  {
+    exit(EXIT_INIT_OPTIONS);
+  }
+
+  if (lua_pcall(L, 1, 0, 0))
+  {
+    l2e_error(L, 1, &eb);
+    write_term(&eb);
+    exit(EXIT_INIT_CALL);
+  }
+
+  l2e_ok(L, 1, &eb);
+  lua_settop(L, 0);
+  write_term(&eb);
+
+  while (read_term(buf, &index) > 0)
+  {
     if (ei_decode_version(buf, &index, &version))
     {
       exit(EXIT_BAD_VERSION);
     }
 
-    if (ei_decode_tuple_header(buf, &index, &arity))
+    if (ei_decode_tuple_header(buf, &index, &arity) || arity != 2)
     {
-      exit(EXIT_BAD_TUPLE);
+      exit(EXIT_BAD_COMMAND);
     }
 
-    if (arity == 2)
+    if (ei_decode_atom(buf, &index, func))
     {
-      if (ei_decode_atom(buf, &index, func))
-      {
-        exit(EXIT_BAD_ATOM);
-      }
-
-      if (lua_getglobal(L, func) != LUA_TFUNCTION)
-      {
-        exit(EXIT_BAD_FUNC);
-      }
+      exit(EXIT_BAD_ATOM);
     }
-    else if (arity != 1)
+
+    if (lua_getglobal(L, func) != LUA_TFUNCTION)
     {
-      exit(EXIT_WRONG_ARITY);
+      exit(EXIT_BAD_FUNC);
     }
 
     if (e2l_args(buf, &index, L, &nargs))
@@ -821,108 +893,22 @@ int main(int argc, char *argv[])
       exit(EXIT_BAD_ARGS);
     }
 
-    resume:
-    status = lua_resume(L, NULL, nargs);
-
-    if (status > LUA_YIELD)
+    if (lua_pcall(L, nargs, LUA_MULTRET, 0))
     {
-      ei_x_encode_version(&eb);
-      ei_x_encode_tuple_header(&eb, 2);
-      ei_x_encode_atom(&eb, "error");
-      l2e_string_binary(L, -1, &eb);
-
-      write_term(&eb);
-      L = lua_newthread(L);
-    }
-    else if (status == LUA_OK)
-    {
-      ei_x_encode_version(&eb);
-      ei_x_encode_tuple_header(&eb, 2);
-      ei_x_encode_atom(&eb, "ok");
-
-      int nresults = lua_gettop(L);
-
-      if (nresults > 0)
-      {
-        ei_x_encode_list_header(&eb, nresults);
-
-        for (int index = 1; index <= nresults; index++)
-        {
-          l2e_any(L, index, &eb);
-        }
-
-        lua_settop(L, 0);
-      }
-
-      ei_x_encode_empty_list(&eb);
-      write_term(&eb);
-    }
-    else if (status == LUA_YIELD)
-    {
-      int yield = lua_tointeger(L, -1);
-      lua_pop(L, 1);
-
-      if (yield == LUAP_CALL)
-      {
-        ei_x_encode_version(&eb);
-        ei_x_encode_tuple_header(&eb, 2);
-        ei_x_encode_atom(&eb, "call");
-        ei_x_encode_tuple_header(&eb, 2);
-
-        l2e_string_atom(L, 1, &eb);
-        l2e_range_list(L, 2, lua_gettop(L), &eb);
-        lua_settop(L, 0);
-
-        write_term(&eb);
-      }
-      else
-      {
-        if (yield == LUAP_CAST)
-        {
-          ei_x_encode_version(&eb);
-          ei_x_encode_tuple_header(&eb, 2);
-          ei_x_encode_atom(&eb, "cast");
-          ei_x_encode_tuple_header(&eb, 2);
-
-          l2e_string_atom(L, 1, &eb);
-          l2e_range_list(L, 2, lua_gettop(L), &eb);
-        }
-        else
-        {
-          int nresults = lua_gettop(L);
-
-          ei_x_encode_version(&eb);
-          ei_x_encode_tuple_header(&eb, 2);
-          ei_x_encode_atom(&eb, "info");
-          ei_x_encode_list_header(&eb, nresults);
-
-          for (int i = 1; i < nresults; i++)
-          {
-            l2e_any(L, i, &eb);
-          }
-
-          ei_x_encode_empty_list(&eb);
-        }
-
-        write_term(&eb);
-        lua_settop(L, 0);
-        nargs = 0;
-        goto resume;
-      }
+      l2e_error(L, 1, &eb);
     }
     else
     {
-      exit(EXIT_WRONG_STATUS);
+      l2e_ok(L, 1, &eb);
     }
+    
+    lua_settop(L, 0);
+    write_term(&eb);
   }
 
-  free(buf);
+  lua_close(L);
   ei_x_free(&eb);
-
-  if (L != NULL)
-  {
-    lua_close(L);
-  }
+  free(buf);
 
   return 0;
 }
