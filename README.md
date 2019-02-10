@@ -19,7 +19,7 @@ luaport:despawn(42).
 ```
 ```lua
 function execute()
-  local results = luaport.call.divide(3, 2)
+  local result = luaport.call.divide(3, 2)
   luaport.cast.divide(3, 2)
 end
 ```
