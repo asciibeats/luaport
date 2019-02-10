@@ -1,5 +1,3 @@
---local a = asdfport.asdf
-
 function init(options)
   luaport.cast.print('hallo')
   local result = luaport.call.multiply(2, 21)
