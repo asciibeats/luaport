@@ -45,7 +45,7 @@ luaport:cast(Pid, execute).
 ```
 The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle.
 ```lua
-local state = luaport.call.init()
+local state = luaport.call.init('sunny')
 
 function execute()
   print(state)
@@ -55,16 +55,15 @@ The port's id is the first argument of every callback, followed by the pipe and 
 ```erlang
 -module(callback).
 
--export([init/2]).
+-export([init/3]).
 
-init(myid, piped) ->
-  [#{some => string}].
+init(myid, piped, Weather) ->
+  [#{weather => Weather}].
 ```
 Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
 ```lua
 local module = require('module')
 ```
-Be happy!
 
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
