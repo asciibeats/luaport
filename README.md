@@ -2,7 +2,7 @@
 *An [erlang port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua*
 ```erlang
 {ok, Pid} = luaport:spawn(someid, "path/to/scripts"),
-{ok, [6]} = luaport:call(Pid, multiply, [2, 3]),
+{ok, [6]} = luaport:call(Pid, multiply, [2, 3]).
 ```
 ```lua
 function multiply(a, b)
@@ -47,7 +47,7 @@ application:stop(luaport).
 Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The second list, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
 ```erlang
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts", [], callback, ["abc", 23]),
-luaport:cast(Pid, execute),
+luaport:cast(Pid, execute).
 ```
 ```lua
 function execute()
@@ -74,9 +74,10 @@ Be happy!
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
 - Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables. 
-- When lists or tuples get translated they become tables with an attached metatype 'list' or 'tuple', respectively.
+- When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
-- Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true gets translated to true and every other atom to false.
+- Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true translates to true and the atom false to false.
+- Every other atom translates to nil and nil translates to the atom undefined.
 
 #### Translations
 | Erlang | Lua | Notes |
@@ -89,7 +90,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | #{5 => 6} | {[5] = 6} | has no metatype |
 | true | true |  |
 | false | false | |
-| undefined | nil | in fact, every atom but true or false becomes nil |
+| undefined | nil | in fact, every atom but true and false becomes nil |
 
 #### Helpers
 | Function | Description |
