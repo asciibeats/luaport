@@ -1,39 +1,13 @@
 # LuaPort
 *An [erlang port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua*
 ```erlang
-{ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
-{ok, Results} = luaport:call(Pid, multiply, [2, 3]),
-luaport:despawn(some_id).
+{ok, Pid} = luaport:spawn(someid, "path/to/scripts"),
+{ok, [6]} = luaport:call(Pid, multiply, [2, 3]),
 ```
 ```lua
 function multiply(a, b)
   return a * b
 end
-```
-Luaports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The list's elements are not interpreted by the port and become the first arguments when calling or casting back.
-```erlang
-{ok, Pid} = luaport:spawn(42, "path/to/scripts", callback, [atom]),
-{ok, Results} = luaport:call(Pid, execute, []),
-luaport:cast(Pid, execute, []),
-luaport:despawn(42).
-```
-```lua
-function execute()
-  local result = luaport.call.divide(3, 2)
-  luaport.cast.divide(3, 2)
-end
-```
-```erlang
--module(callback).
-
--export([divide/3]).
-
-divide(atom, A, B) ->
-  [A / B].
-```
-Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
-```lua
-local module = require('module')
 ```
 
 ## Test
@@ -56,13 +30,43 @@ function subtract(a, b)
   return a - b
 end
 ```
+Add an init function, if you want to do something on spawn or respawn. The arguments are the third parameter of spawn.
+```lua
+function init(...)
+  print(...)
+end
+```
 Don't forget to start the application before you use it.
 ```erlang
 application:start(luaport),
-{ok, Pid} = luaport:spawn("myid", "path/to/scripts"),
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts", [#{<<"really?">> => true}]),
 {ok, Results} = luaport:call(Pid, subtract, [43, 1]),
-luaport:despawn("myid"),
+luaport:despawn(myid),
 application:stop(luaport).
+```
+Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The second list, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
+```erlang
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts", [], callback, ["abc", 23]),
+luaport:cast(Pid, execute),
+```
+```lua
+function execute()
+  local result = luaport.call.divide(3, 2)
+  luaport.cast.divide(3, 2)
+end
+```
+The port's id is the first argument of every callback, followed by the pipe and the original arguments.
+```erlang
+-module(callback).
+
+-export([divide/5]).
+
+divide(myid, "abc", 23, A, B) ->
+  [A / B].
+```
+Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
+```lua
+local module = require('module')
 ```
 Be happy!
 
@@ -84,7 +88,8 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | {3, 4} | {3, 4} | has metatype 'tuple' |
 | #{5 => 6} | {[5] = 6} | has no metatype |
 | true | true |  |
-| false | false | in fact, every atom but true is false |
+| false | false | |
+| undefined | nil | in fact, every atom but true or false becomes nil |
 
 #### Helpers
 | Function | Description |
