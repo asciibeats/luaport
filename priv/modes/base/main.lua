@@ -1,9 +1,8 @@
-function init(...)
-  print(...)
-end
+print('hello')
+
+some, values = luaport.call.init('sunshine')
 
 function echo(...)
-  print(...)
   return ...
 end
 

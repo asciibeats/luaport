@@ -3,7 +3,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([spawn/6]).
+-export([spawn/5]).
 -export([respawn/1]).
 -export([despawn/1]).
 
@@ -13,8 +13,8 @@ start_link() ->
 init(_Args) ->
   {ok, {{one_for_one, 1, 5}, []}}.
 
-spawn(Id, Path, Args, M, Pipe, Timeout) ->
-  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Id, Path, Args, M, Pipe, Timeout]}, transient, 1000, worker, [luaport_server]}).
+spawn(Id, Path, M, Pipe, Timeout) ->
+  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Id, Path, M, Pipe, Timeout]}, transient, 1000, worker, [luaport_server]}).
 
 respawn(Id) ->
   supervisor:terminate_child(?MODULE, Id),

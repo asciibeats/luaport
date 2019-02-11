@@ -32,11 +32,6 @@
 
 #define EXIT_INIT_BUFFER 210
 #define EXIT_INIT_MAIN 211
-#define EXIT_INIT_READ 212
-#define EXIT_INIT_VERSION 213
-#define EXIT_INIT_FUNC 214
-#define EXIT_INIT_ARGS 215
-#define EXIT_INIT_CALL 216
 
 #define EXIT_BAD_VERSION 220
 #define EXIT_BAD_COMMAND 221
@@ -308,9 +303,13 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
   {
     lua_pushboolean(L, 0);
   }
-  else
+  else if (!strcmp(atom, "undefined"))
   {
     lua_pushnil(L);
+  }
+  else
+  {
+    lua_pushstring(L, atom);
   }
 
   return 0;
@@ -643,9 +642,9 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 
 static int luaport_call(lua_State *L)
 {
-  char *buf = lua_touserdata(L, lua_upvalueindex(2));
-  int *index = lua_touserdata(L, lua_upvalueindex(3));
-  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(4));
+  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
+  char *buf = lua_touserdata(L, lua_upvalueindex(3));
+  int *index = lua_touserdata(L, lua_upvalueindex(4));
 
   ei_x_encode_version(eb);
   ei_x_encode_tuple_header(eb, 3);
@@ -774,7 +773,7 @@ static const struct luaL_Reg luaport_func[] = {
 static int luaopen_luaport(lua_State *L)
 {
   char *buf = malloc(LUAP_BUFFER);
-  int index;
+  int *index = malloc(sizeof(int));
   ei_x_buff *eb = malloc(sizeof(ei_x_buff));
   ei_x_new(eb);
 
@@ -786,9 +785,9 @@ static int luaopen_luaport(lua_State *L)
 
   lua_newtable(L);
   lua_createtable(L, 0, 1);
-  lua_pushlightuserdata(L, buf);
-  lua_pushlightuserdata(L, &index);
   lua_pushlightuserdata(L, eb);
+  lua_pushlightuserdata(L, buf);
+  lua_pushlightuserdata(L, index);
   lua_pushcclosure(L, luaport_call_index, 3);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
@@ -806,13 +805,7 @@ static int luaopen_luaport(lua_State *L)
 
 int main(int argc, char *argv[])
 {
-  char *buf = malloc(LUAP_BUFFER);
-
-  if (buf == NULL)
-  {
-    exit(EXIT_INIT_BUFFER);
-  }
-
+  char buf[LUAP_BUFFER];
   int index;
   ei_x_buff eb;
   ei_x_new(&eb);
@@ -835,38 +828,9 @@ int main(int argc, char *argv[])
 
   if (luaL_dofile(L, "main.lua"))
   {
-    l2e_error(L, -1, &eb);
+    l2e_error(L, 1, &eb);
     write_term(&eb);
     exit(EXIT_INIT_MAIN);
-  }
-
-  if (read_term(buf, &index) <= 0)
-  {
-    exit(EXIT_INIT_READ);
-  }
-
-  if (ei_decode_version(buf, &index, &version))
-  {
-    exit(EXIT_INIT_VERSION);
-  }
-
-  if (lua_getglobal(L, "init") == LUA_TFUNCTION)
-  {
-    if (e2l_args(buf, &index, L, &nargs))
-    {
-      exit(EXIT_INIT_ARGS);
-    }
-
-    if (lua_pcall(L, nargs, LUA_MULTRET, 0))
-    {
-      l2e_error(L, 1, &eb);
-      write_term(&eb);
-      exit(EXIT_INIT_CALL);
-    }
-  }
-  else
-  {
-    lua_pop(L, 1);
   }
 
   l2e_ok(L, 1, &eb);
@@ -915,7 +879,6 @@ int main(int argc, char *argv[])
 
   lua_close(L);
   ei_x_free(&eb);
-  free(buf);
 
   return 0;
 }

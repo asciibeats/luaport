@@ -1,7 +1,7 @@
 -module(luaport_server).
 
--export([start_link/6]).
--export([init/6]).
+-export([start_link/5]).
+-export([init/5]).
 -export([call/4]).
 -export([cast/4]).
 
@@ -18,11 +18,6 @@
 
   210 => {respawn, init_buffer},
   211 => {respawn, init_main},
-  212 => {respawn, init_read},
-  213 => {respawn, init_version},
-  214 => {respawn, init_func},
-  215 => {respawn, init_args},
-  216 => {respawn, init_call},
 
   220 => {respawn, bad_version},
   221 => {respawn, bad_command},
@@ -33,14 +28,13 @@
   230 => {respawn, call_read},
   231 => {respawn, call_args}}).
 
-start_link(Id, Path, Args, M, Pipe, Timeout) ->
-  {ok, spawn_link(?MODULE, init, [Id, Path, Args, M, Pipe, Timeout])}.
+start_link(Id, Path, M, Pipe, Timeout) ->
+  {ok, spawn_link(?MODULE, init, [Id, Path, M, Pipe, Timeout])}.
 
-init(Id, Path, Args, M, Pipe, Timeout) when is_list(Path), is_list(Args), is_atom(M), is_list(Pipe) ->
+init(Id, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pipe) ->
   process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-  Port ! {self(), {command, term_to_binary(Args)}},
   {ok, []} = portloop(Id, Port, M, Pipe, Timeout),
   mainloop(Id, Port, M, Pipe).
 

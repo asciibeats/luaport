@@ -1,21 +1,19 @@
 -module(luaport).
 
--export([spawn/2, spawn/3, spawn/4, spawn/5, spawn/6]).
+-export([spawn/2, spawn/3, spawn/4, spawn/5]).
 -export([respawn/1]).
 -export([despawn/1]).
 -export([call/2, call/3, call/4]).
 -export([cast/2, cast/3, cast/4]).
 
 spawn(Id, Path) ->
-  ?MODULE:spawn(Id, Path, []).
-spawn(Id, Path, Args) ->
-  ?MODULE:spawn(Id, Path, Args, undefined).
-spawn(Id, Path, Args, M) ->
-  ?MODULE:spawn(Id, Path, Args, M, []).
-spawn(Id, Path, Args, M, Pipe) ->
-  ?MODULE:spawn(Id, Path, Args, M, Pipe, 1000).
-spawn(Id, Path, Args, M, Pipe, Timeout) ->
-  luaport_sup:spawn(Id, Path, Args, M, Pipe, Timeout).
+  ?MODULE:spawn(Id, Path, undefined).
+spawn(Id, Path, M) ->
+  ?MODULE:spawn(Id, Path, M, []).
+spawn(Id, Path, M, Pipe) ->
+  ?MODULE:spawn(Id, Path, M, Pipe, 1000).
+spawn(Id, Path, M, Pipe, Timeout) ->
+  luaport_sup:spawn(Id, Path, M, Pipe, Timeout).
 
 respawn(Id) ->
   luaport_sup:respawn(Id).

@@ -30,39 +30,35 @@ function subtract(a, b)
   return a - b
 end
 ```
-Add an init function, if you want to do something on spawn or respawn. The arguments are the third parameter of spawn.
-```lua
-function init(...)
-  print(...)
-end
-```
 Don't forget to start the application before you use it.
 ```erlang
 application:start(luaport),
-{ok, Pid} = luaport:spawn(myid, "path/to/scripts", [#{<<"really?">> => true}]),
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts"),
 {ok, Results} = luaport:call(Pid, subtract, [43, 1]),
 luaport:despawn(myid),
 application:stop(luaport).
 ```
-Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The second list, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
+Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The forth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
 ```erlang
-{ok, Pid} = luaport:spawn(myid, "path/to/scripts", [], callback, ["abc", 23]),
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [piped]),
 luaport:cast(Pid, execute).
 ```
+The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle.
 ```lua
+local state = luaport.call.init()
+
 function execute()
-  local result = luaport.call.divide(3, 2)
-  luaport.cast.divide(3, 2)
+  print(state)
 end
 ```
 The port's id is the first argument of every callback, followed by the pipe and the original arguments.
 ```erlang
 -module(callback).
 
--export([divide/5]).
+-export([init/2]).
 
-divide(myid, "abc", 23, A, B) ->
-  [A / B].
+init(myid, piped) ->
+  [#{some => string}].
 ```
 Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
 ```lua
@@ -76,8 +72,9 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - Lua has only one collection type, the table. It is lika a map in erlang. So when maps get translated to lua they become tables. 
 - When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
-- Erlang has no boolean type and atoms serve no purpose in lua context. So the atom true translates to true and the atom false to false.
-- Every other atom translates to nil and nil translates to the atom undefined.
+- Erlang has no boolean type and atoms serve no purpose in lua context. So atom true translates to true and atom false to false.
+- Atom undefined translates to nil.
+- For convenience, all other atoms become strings. They will be handled like any other string on the way back.
 
 #### Translations
 | Erlang | Lua | Notes |
@@ -88,9 +85,9 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | [1, 2] | {1, 2} | has metatype 'list' |
 | {3, 4} | {3, 4} | has metatype 'tuple' |
 | #{5 => 6} | {[5] = 6} | has no metatype |
-| true | true |  |
+| true | true | |
 | false | false | |
-| undefined | nil | in fact, every atom but true and false becomes nil |
+| undefined | nil | |
 
 #### Helpers
 | Function | Description |
