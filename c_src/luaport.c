@@ -829,11 +829,12 @@ int main(int argc, char *argv[])
   if (luaL_dofile(L, "main.lua"))
   {
     l2e_error(L, 1, &eb);
-    write_term(&eb);
-    exit(EXIT_INIT_MAIN);
+  }
+  else
+  {
+    l2e_ok(L, 1, &eb);
   }
 
-  l2e_ok(L, 1, &eb);
   write_term(&eb);
   lua_settop(L, 0);
 
