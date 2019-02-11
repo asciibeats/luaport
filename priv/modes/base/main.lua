@@ -1,7 +1,5 @@
-function init(options)
-  luaport.cast.print('hallo')
-  local result = luaport.call.multiply(2, 21)
-  print('init', options, result)
+function init(...)
+  print(...)
 end
 
 function echo(...)
@@ -10,21 +8,13 @@ function echo(...)
 end
 
 function call(name, ...)
-  print('call', name, ...)
-  luaport.call[name](...)
   return luaport.call[name](...)
 end
 
 function cast(name, ...)
-  print('cast', name, ...)
-  luaport.cast[name](...)
   luaport.cast[name](...)
 end
 
-function getnil()
-  return nil
-end
-
-function execute(name, ...)
+function exec(name, ...)
   return luaport[name](...)
 end
