@@ -13,10 +13,11 @@ start_link() ->
 init(_Args) ->
   {ok, {{one_for_one, 1, 5}, []}}.
 
-spawn(Id, Path, Options, M, Pipe, Timeout) ->
-  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Id, Path, Options, M, Pipe, Timeout]}, transient, 1000, worker, [luaport_server]}).
+spawn(Id, Path, Args, M, Pipe, Timeout) ->
+  supervisor:start_child(?MODULE, {Id, {luaport_server, start_link, [Id, Path, Args, M, Pipe, Timeout]}, transient, 1000, worker, [luaport_server]}).
 
 respawn(Id) ->
+  supervisor:terminate_child(?MODULE, Id),
   supervisor:restart_child(?MODULE, Id).
 
 despawn(Id) ->

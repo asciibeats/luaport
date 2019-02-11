@@ -18,6 +18,7 @@
 #define LUAP_BUFFER 512
 #endif
 
+#define LUAP_PACKET 4
 #define LUAP_LIBNAME "luaport"
 #define LUAP_CALL 0
 #define LUAP_CAST 1
@@ -34,7 +35,7 @@
 #define EXIT_INIT_READ 212
 #define EXIT_INIT_VERSION 213
 #define EXIT_INIT_FUNC 214
-#define EXIT_INIT_OPTIONS 215
+#define EXIT_INIT_ARGS 215
 #define EXIT_INIT_CALL 216
 
 #define EXIT_BAD_VERSION 220
@@ -113,7 +114,7 @@ static int write_bytes(char *buf, int len)
 
 static int read_term(char *buf, int *index)
 {
-  if (read_bytes(buf, 4) != 4)
+  if (read_bytes(buf, LUAP_PACKET) != LUAP_PACKET)
   {
     return -1;
   }
@@ -132,7 +133,7 @@ static int read_term(char *buf, int *index)
 static int write_term(ei_x_buff *eb)
 {
   uint32_t len = swap4(eb->index);
-  write_bytes((char*)&len, 4);
+  write_bytes((char*)&len, LUAP_PACKET);
   len = write_bytes(eb->buff, eb->index);
   eb->index = 0;
   return len;
@@ -303,9 +304,13 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
   {
     lua_pushboolean(L, 1);
   }
-  else
+  else if (!strcmp(atom, "false"))
   {
     lua_pushboolean(L, 0);
+  }
+  else
+  {
+    lua_pushnil(L);
   }
 
   return 0;
@@ -845,26 +850,28 @@ int main(int argc, char *argv[])
     exit(EXIT_INIT_VERSION);
   }
 
-  if (lua_getglobal(L, "init") != LUA_TFUNCTION)
+  if (lua_getglobal(L, "init") == LUA_TFUNCTION)
   {
-    exit(EXIT_INIT_FUNC);
-  }
+    if (e2l_args(buf, &index, L, &nargs))
+    {
+      exit(EXIT_INIT_ARGS);
+    }
 
-  if (e2l_map(buf, &index, L))
-  {
-    exit(EXIT_INIT_OPTIONS);
+    if (lua_pcall(L, nargs, LUA_MULTRET, 0))
+    {
+      l2e_error(L, 1, &eb);
+      write_term(&eb);
+      exit(EXIT_INIT_CALL);
+    }
   }
-
-  if (lua_pcall(L, 1, 0, 0))
+  else
   {
-    l2e_error(L, 1, &eb);
-    write_term(&eb);
-    exit(EXIT_INIT_CALL);
+    lua_pop(L, 1);
   }
 
   l2e_ok(L, 1, &eb);
-  lua_settop(L, 0);
   write_term(&eb);
+  lua_settop(L, 0);
 
   while (read_term(buf, &index) > 0)
   {
@@ -901,9 +908,9 @@ int main(int argc, char *argv[])
     {
       l2e_ok(L, 1, &eb);
     }
-    
-    lua_settop(L, 0);
+
     write_term(&eb);
+    lua_settop(L, 0);
   }
 
   lua_close(L);

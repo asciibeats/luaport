@@ -21,7 +21,7 @@
   212 => {respawn, init_read},
   213 => {respawn, init_version},
   214 => {respawn, init_func},
-  215 => {respawn, init_options},
+  215 => {respawn, init_args},
   216 => {respawn, init_call},
 
   220 => {respawn, bad_version},
@@ -33,14 +33,14 @@
   230 => {respawn, call_read},
   231 => {respawn, call_args}}).
 
-start_link(Id, Path, Options, M, Pipe, Timeout) ->
-  {ok, spawn_link(?MODULE, init, [Id, Path, Options, M, Pipe, Timeout])}.
+start_link(Id, Path, Args, M, Pipe, Timeout) ->
+  {ok, spawn_link(?MODULE, init, [Id, Path, Args, M, Pipe, Timeout])}.
 
-init(Id, Path, Options, M, Pipe, Timeout) when is_list(Path), is_map(Options), is_atom(M), is_list(Pipe) ->
+init(Id, Path, Args, M, Pipe, Timeout) when is_list(Path), is_list(Args), is_atom(M), is_list(Pipe) ->
   process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-  Port ! {self(), {command, term_to_binary(Options)}},
+  Port ! {self(), {command, term_to_binary(Args)}},
   {ok, []} = portloop(Id, Port, M, Pipe, Timeout),
   mainloop(Id, Port, M, Pipe).
 
@@ -59,8 +59,7 @@ mainloop(Id, Port, M, Pipe) ->
   receive
     {call, From, Ref, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      Result = portloop(Id, Port, M, Pipe, Timeout),
-      From ! {Ref, Result},
+      From ! {Ref, portloop(Id, Port, M, Pipe, Timeout)},
       mainloop(Id, Port, M, Pipe);
     {cast, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
