@@ -67,7 +67,7 @@ mainloop(Id, Port, M, Pipe) ->
 
 portloop(Id, Port, M, Pipe, Timeout) ->
   receive
-    {Port, {data, Data}} -> 
+    {Port, {data, Data}} ->
       case binary_to_term(Data, [safe]) of
         {call, F, A} when M =/= undefined ->
           Port ! {self(), {command, term_to_binary(apply(M, F, [Id | Pipe ++ A]))}},

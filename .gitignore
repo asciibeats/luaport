@@ -1,6 +1,5 @@
 /priv/luaport
 /_build
-/dump
 rebar.lock
 erl_crash.dump
 *.o
