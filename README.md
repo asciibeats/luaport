@@ -38,7 +38,7 @@ application:start(luaport),
 luaport:despawn(myid),
 application:stop(luaport).
 ```
-Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The forth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
+Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The fourth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
 ```erlang
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [piped]),
 luaport:cast(Pid, execute).
@@ -81,9 +81,9 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | 23 | 23 | |
 | "abc" | {97, 98, 99} | erlang strings are lists |
 | <<"abc">> | 'abc' | |
-| [1, 2] | {1, 2} | has metatype 'list' |
+| \[1, 2] | {1, 2} | has metatype 'list' |
 | {3, 4} | {3, 4} | has metatype 'tuple' |
-| #{5 => 6} | {[5] = 6} | has no metatype |
+| #{5 => 6} | {\[5] = 6} | has no metatype |
 | true | true | |
 | false | false | |
 | undefined | nil | |
