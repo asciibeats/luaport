@@ -45,7 +45,7 @@ luaport:cast(Pid, execute).
 ```
 The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle.
 ```lua
-local state = luaport.call.init('sunny')
+local state = luaport.call.init('sunshine')
 
 function execute()
   print(state)
