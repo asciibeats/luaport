@@ -40,25 +40,25 @@ application:stop(luaport).
 ```
 Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The fourth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
 ```erlang
-{ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [piped]),
+{ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [one, "another"]),
 luaport:cast(Pid, execute).
 ```
 The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle.
 ```lua
-local state = luaport.call.init('sunshine')
+local state, number = luaport.call.init('sunshine', 49)
 
 function execute()
-  print(state)
+  print(state, number)
 end
 ```
 The port's id is the first argument of every callback, followed by the pipe and the original arguments.
 ```erlang
 -module(callback).
 
--export([init/3]).
+-export([init/5]).
 
-init(myid, piped, Weather) ->
-  [#{weather => Weather}].
+init(myid, one, "another", String, Number) ->
+  [#{string => String}, Number].
 ```
 Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
 ```lua
