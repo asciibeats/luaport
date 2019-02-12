@@ -30,17 +30,15 @@
 #define EXIT_FAIL_READ 200
 #define EXIT_FAIL_WRITE 201
 
-#define EXIT_INIT_BUFFER 210
-#define EXIT_INIT_MAIN 211
+#define EXIT_BAD_VERSION 210
+#define EXIT_BAD_COMMAND 211
+#define EXIT_BAD_ATOM 212
+#define EXIT_BAD_FUNC 213
+#define EXIT_BAD_ARGS 214
 
-#define EXIT_BAD_VERSION 220
-#define EXIT_BAD_COMMAND 221
-#define EXIT_BAD_ATOM 222
-#define EXIT_BAD_FUNC 223
-#define EXIT_BAD_ARGS 224
-
-#define EXIT_CALL_READ 230
-#define EXIT_CALL_ARGS 231
+#define EXIT_CALL_READ 220
+#define EXIT_CALL_VERSION 221
+#define EXIT_CALL_RESULT 222
 
 #define write_error(...) write_message("error", __VA_ARGS__)
 #define write_info(...) write_message("info", __VA_ARGS__)
@@ -664,14 +662,14 @@ static int luaport_call(lua_State *L)
 
   if (ei_decode_version(buf, index, &version))
   {
-    exit(EXIT_BAD_VERSION);
+    exit(EXIT_CALL_VERSION);
   }
 
   int nargs;
 
   if (e2l_args(buf, index, L, &nargs))
   {
-    exit(EXIT_CALL_ARGS);
+    exit(EXIT_CALL_RESULT);
   }
 
   return nargs;

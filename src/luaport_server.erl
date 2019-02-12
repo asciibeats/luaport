@@ -16,17 +16,15 @@
   200 => {respawn, fail_read},
   201 => {respawn, fail_write},
 
-  210 => {respawn, init_buffer},
-  211 => {respawn, init_main},
+  210 => {respawn, bad_version},
+  211 => {respawn, bad_command},
+  212 => {respawn, bad_atom},
+  213 => {respawn, bad_func},
+  214 => {respawn, bad_args},
 
-  220 => {respawn, bad_version},
-  221 => {respawn, bad_command},
-  222 => {respawn, bad_atom},
-  223 => {respawn, bad_func},
-  224 => {respawn, bad_args},
-
-  230 => {respawn, call_read},
-  231 => {respawn, call_args}}).
+  220 => {respawn, call_read},
+  221 => {respawn, call_version},
+  222 => {respawn, call_result}}).
 
 start_link(Id, Path, M, Pipe, Timeout) ->
   {ok, spawn_link(?MODULE, init, [Id, Path, M, Pipe, Timeout])}.
