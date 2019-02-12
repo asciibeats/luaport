@@ -777,10 +777,6 @@ static int luaopen_luaport(lua_State *L)
   ei_x_buff *eb = malloc(sizeof(ei_x_buff));
   ei_x_new(eb);
 
-  lua_pushlightuserdata(L, eb);
-  lua_pushcclosure(L, luaport_print, 1);
-  lua_setglobal(L, "print");
-
   luaL_newlib(L, luaport_func);
 
   lua_newtable(L);
@@ -800,6 +796,11 @@ static int luaopen_luaport(lua_State *L)
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "cast");
+
+  lua_pushlightuserdata(L, eb);
+  lua_pushcclosure(L, luaport_print, 1);
+  lua_setglobal(L, "print");
+
   return 1;
 }
 
