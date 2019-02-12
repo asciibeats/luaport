@@ -57,9 +57,9 @@ mainloop(Id, Port, M, Pipe) ->
       Port ! {self(), {command, term_to_binary({F, A})}},
       portloop(Id, Port, M, Pipe, Timeout),
       mainloop(Id, Port, M, Pipe);
-    {'EXIT', _From, Reason} ->
+    {'EXIT', _From, _Reason} ->
       port_close(Port);
-    {'EXIT', Reason} ->
+    {'EXIT', _Reason} ->
       port_close(Port)
   end.
 
