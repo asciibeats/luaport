@@ -18,7 +18,7 @@ case1(_Config) ->
   Path = filename:join([code:priv_dir(luaport), modes, base]),
   {ok, Pid} = luaport:spawn(banane, Path, ?MODULE),
   {ok, [9, 8]} = luaport:call(Pid, echo, [9, 8]),
-  {error, <<"don't panic">>} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
+  {error, "don't panic"} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
   {ok, [[{true, false}]]} = luaport:call(Pid, echo, [[{true, false, undefined}]]),
   {ok, [{[<<"other">>, "abc"]}]} = luaport:call(Pid, echo, [{[other, "abc"]}]),
   {ok, [#{<<"one">> := 1,[2,3.7,4] := #{}}]} = luaport:call(Pid, echo, [#{one => 1, [2,3.7,4] => #{}}]),

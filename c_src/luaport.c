@@ -476,6 +476,12 @@ static void l2e_float(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_double(eb, number);
 }
 
+static void l2e_string_string(lua_State *L, int index, ei_x_buff *eb)
+{
+  const char *str = lua_tostring(L, index);
+  ei_x_encode_string(eb, str);
+}
+
 static void l2e_string_binary(lua_State *L, int index, ei_x_buff *eb)
 {
   size_t len;
@@ -604,7 +610,7 @@ static void l2e_error(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_version(eb);
   ei_x_encode_tuple_header(eb, 2);
   ei_x_encode_atom(eb, "error");
-  l2e_string_binary(L, index, eb);
+  l2e_string_string(L, index, eb);
 }
 
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
