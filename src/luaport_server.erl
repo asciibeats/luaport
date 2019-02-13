@@ -66,17 +66,12 @@ portloop(Id, Port, M, Pipe, Timeout) ->
   receive
     {Port, {data, Data}} ->
       try binary_to_term(Data, [safe]) of
-        {call, F, A} when M =/= undefined ->
+        {call, F, A} ->
           Result = tryapply(M, F, [Id | Pipe ++ A]),
           Port ! {self(), {command, term_to_binary(Result)}},
           portloop(Id, Port, M, Pipe, Timeout);
-        {call, _, _} ->
-          Port ! {self(), {command, term_to_binary([])}},
-          portloop(Id, Port, M, Pipe, Timeout);
-        {cast, F, A} when M =/= undefined ->
+        {cast, F, A} ->
           tryapply(M, F, [Id | Pipe ++ A]),
-          portloop(Id, Port, M, Pipe, Timeout);
-        {cast, _, _} ->
           portloop(Id, Port, M, Pipe, Timeout);
         {info, List} -> 
           io:format("inf ~p ~p~n", [Id, List]),
@@ -96,9 +91,11 @@ portloop(Id, Port, M, Pipe, Timeout) ->
     {error, timeout}
   end.
 
-tryapply(M, F, A) ->
+tryapply(M, F, A) when M =/= undefined ->
   try
     apply(M, F, A)
   catch
     error:undef -> []
-  end.
+  end;
+tryapply(_M, _F, _A) ->
+  [].
