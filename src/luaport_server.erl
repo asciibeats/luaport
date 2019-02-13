@@ -57,39 +57,48 @@ mainloop(Id, Port, M, Pipe) ->
       Port ! {self(), {command, term_to_binary({F, A})}},
       portloop(Id, Port, M, Pipe, Timeout),
       mainloop(Id, Port, M, Pipe);
-    {'EXIT', _From, _Reason} ->
-      port_close(Port);
-    {'EXIT', _Reason} ->
-      port_close(Port)
+    {'EXIT', _From, Reason} ->
+      port_close(Port),
+      exit(Reason)
   end.
 
 portloop(Id, Port, M, Pipe, Timeout) ->
   receive
     {Port, {data, Data}} ->
-      case binary_to_term(Data, [safe]) of
+      try binary_to_term(Data, [safe]) of
         {call, F, A} when M =/= undefined ->
-          Port ! {self(), {command, term_to_binary(apply(M, F, [Id | Pipe ++ A]))}},
+          Result = tryapply(M, F, [Id | Pipe ++ A]),
+          Port ! {self(), {command, term_to_binary(Result)}},
           portloop(Id, Port, M, Pipe, Timeout);
         {call, _, _} ->
           Port ! {self(), {command, term_to_binary([])}},
           portloop(Id, Port, M, Pipe, Timeout);
         {cast, F, A} when M =/= undefined ->
-          apply(M, F, [Id | Pipe ++ A]),
+          tryapply(M, F, [Id | Pipe ++ A]),
           portloop(Id, Port, M, Pipe, Timeout);
         {cast, _, _} ->
           portloop(Id, Port, M, Pipe, Timeout);
         {info, List} -> 
-          io:format("inf ~p ~p~n", [Port, List]),
+          io:format("inf ~p ~p~n", [Id, List]),
           portloop(Id, Port, M, Pipe, Timeout);
         {error, Reason} ->
-          io:format("err ~p ~p~n", [Port, Reason]),
+          io:format("err ~p ~p~n", [Id, Reason]),
           {error, Reason};
         {ok, Results} ->
           {ok, Results}
+      catch
+        error:badarg -> exit({restart, unsafe_data})
       end;
     {Port, {exit_status, Status}} ->
       exit(maps:get(Status, ?EXIT_REASONS, {unknown, Status}))
   after Timeout ->
-    io:format("err ~p ~p~n", [Port, timeout]),
+    io:format("err ~p ~p~n", [Id, timeout]),
     {error, timeout}
+  end.
+
+tryapply(M, F, A) ->
+  try
+    apply(M, F, A)
+  catch
+    error:undef -> []
   end.
