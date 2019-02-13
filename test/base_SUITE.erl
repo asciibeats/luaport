@@ -24,6 +24,7 @@ case1(_Config) ->
   {ok, [#{<<"one">> := 1,[2,3.7,4] := #{}}]} = luaport:call(Pid, echo, [#{one => 1, [2,3.7,4] => #{}}]),
   {ok, [{{2, 3}, {<<"vier">>, 5}}]} = luaport:call(Pid, echo, [{{2, 3}, {<<"vier">>, 5}}]),
   {ok, [6]} = luaport:call(Pid, call, [<<"multiply">>, 2, 3]),
+  {ok, []} = luaport:call(Pid, call, [<<"undefined">>, 2, 3]),
   {ok, Pid2} = luaport:spawn(42, Path, ?MODULE, [thing]),
   {ok, [15]} = luaport:call(Pid2, call, [<<"multiply">>, 3, 5]),
   ok = luaport:despawn(42),
