@@ -1,6 +1,6 @@
 print('hello')
 
-some, values = luaport.call.init('sunshine')
+local some, values = luaport.call.init('sunshine')
 
 function echo(...)
   return ...
