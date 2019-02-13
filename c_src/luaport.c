@@ -20,8 +20,6 @@
 
 #define LUAP_PACKET 4
 #define LUAP_LIBNAME "luaport"
-#define LUAP_CALL 0
-#define LUAP_CAST 1
 #define LUAP_MTYPE "_mtype"
 #define LUAP_TMAP 0
 #define LUAP_TTUPLE 1
