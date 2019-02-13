@@ -87,10 +87,10 @@ portloop(Id, Port, M, Pipe, Timeout) ->
         {ok, Results} ->
           {ok, Results}
       catch
-        error:badarg -> exit({restart, unsafe_data})
+        error:badarg -> exit({respawn, unsafe_data})
       end;
     {Port, {exit_status, Status}} ->
-      exit(maps:get(Status, ?EXIT_REASONS, {unknown, Status}))
+      exit(maps:get(Status, ?EXIT_REASONS, {respawn, Status}))
   after Timeout ->
     io:format("err ~p ~p~n", [Id, timeout]),
     {error, timeout}
