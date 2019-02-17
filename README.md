@@ -51,7 +51,7 @@ function execute()
   print(state, number)
 end
 ```
-The port's id is the first argument of every callback, followed by the pipe and the original arguments.
+The port's reference is the first argument of every callback, followed by the pipe and the original arguments.
 ```erlang
 -module(callback).
 
@@ -59,6 +59,12 @@ The port's id is the first argument of every callback, followed by the pipe and 
 
 init(myid, one, "another", String, Number) ->
   [#{string => String}, Number].
+```
+To be able to continuously call or cast functions after accidental or intended respawns, you could use `{global, Name}` or `{local, Name}` as reference to register the port.
+```erlang
+{ok, _Pid1} = luaport:spawn({local, myid}, "path/to/scripts"),
+{ok, _Pid2} = luaport:respawn({local, myid}),
+luaport:cast({local, myid}, execute).
 ```
 Requiring modules works normally. You can put a module.lua or module.so into path/to/scripts or any other path in lua's package.path or package.cpath, respectively.
 ```lua

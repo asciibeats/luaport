@@ -25,13 +25,15 @@ case1(_Config) ->
   {ok, [{{2, 3}, {<<"vier">>, 5}}]} = luaport:call(Pid, echo, [{{2, 3}, {<<"vier">>, 5}}]),
   {ok, [6]} = luaport:call(Pid, call, [<<"multiply">>, 2, 3]),
   {ok, []} = luaport:call(Pid, call, [<<"undefined">>, 2, 3]),
-  {ok, Pid2} = luaport:spawn(42, Path, ?MODULE, [thing]),
-  {ok, [15]} = luaport:call(Pid2, call, [<<"multiply">>, 3, 5]),
-  ok = luaport:despawn(42),
-  {ok, _Pid3} = luaport:spawn(42, Path, ?MODULE),
-  {ok, Pid4} = luaport:respawn(42),
-  {ok, []} = luaport:call(Pid4, print, [<<"done">>]),
-  ok = luaport:despawn(42),
+  PortRef2 = {local, moin},
+  {ok, _Pid2} = luaport:spawn(PortRef2, Path, ?MODULE, [thing]),
+  {ok, [15]} = luaport:call(PortRef2, call, [<<"multiply">>, 3, 5]),
+  ok = luaport:despawn(PortRef2),
+  PortRef3 = {global, sven},
+  {ok, _Pid3} = luaport:spawn(PortRef3, Path, ?MODULE),
+  {ok, _Pid4} = luaport:respawn(PortRef3),
+  {ok, []} = luaport:call(PortRef3, print, [<<"done">>]),
+  ok = luaport:despawn(PortRef3),
   {ok, [true]} = luaport:call(Pid, exec, [<<"islist">>, "abc"]),
   {ok, [true]} = luaport:call(Pid, exec, [<<"istuple">>, {}]),
   {ok, [true]} = luaport:call(Pid, exec, [<<"ismap">>, #{}]),
@@ -44,17 +46,17 @@ case1(_Config) ->
   ok = luaport:despawn(banane),
   application:stop(luaport).
 
-init(_Id, Name) ->
+init(_PortRef, Name) ->
   [42, Name].
-init(_Id, thing, Name) ->
+init(_PortRef, thing, Name) ->
   [23, Name].
 
-multiply(_Id, A, B) ->
+multiply(_PortRef, A, B) ->
   [A * B].
-multiply(_Id, thing, A, B) ->
+multiply(_PortRef, thing, A, B) ->
   [A * B].
 
-print(Id, A) ->
-  ct:pal("print: ~p ~p~n", [Id, A]).
-print(Id, thing, A) ->
-  ct:pal("print: ~p ~p~n", [Id, A]).
+print(PortRef, A) ->
+  ct:pal("print: ~p ~p~n", [PortRef, A]).
+print(PortRef, thing, A) ->
+  ct:pal("print: ~p ~p~n", [PortRef, A]).

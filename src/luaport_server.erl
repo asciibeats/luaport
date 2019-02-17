@@ -26,58 +26,60 @@
   221 => {respawn, call_version},
   222 => {respawn, call_result}}).
 
-start_link(Id, Path, M, Pipe, Timeout) ->
-  {ok, spawn_link(?MODULE, init, [Id, Path, M, Pipe, Timeout])}.
+start_link(PortRef, Path, M, Pipe, Timeout) ->
+  Pid = spawn_link(?MODULE, init, [PortRef, Path, M, Pipe, Timeout]),
+  register_name(PortRef, Pid),
+  {ok, Pid}.
 
-init(Id, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pipe) ->
+init(PortRef, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pipe) ->
   process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-  {ok, []} = portloop(Id, Port, M, Pipe, Timeout),
-  mainloop(Id, Port, M, Pipe).
+  {ok, []} = portloop(PortRef, Port, M, Pipe, Timeout),
+  mainloop(PortRef, Port, M, Pipe).
 
-call(Pid, F, A, Timeout) when is_atom(F), is_list(A) ->
+call(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
   Ref = make_ref(),
-  Pid ! {call, self(), Ref, F, A, Timeout},
+  send(PortRef, {call, self(), Ref, F, A, Timeout}),
   receive
     {Ref, Result} -> Result
   end.
 
-cast(Pid, F, A, Timeout) when is_atom(F), is_list(A) ->
-  Pid ! {cast, F, A, Timeout},
+cast(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
+  send(PortRef, {cast, F, A, Timeout}),
   ok.
 
-mainloop(Id, Port, M, Pipe) ->
+mainloop(PortRef, Port, M, Pipe) ->
   receive
     {call, From, Ref, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      From ! {Ref, portloop(Id, Port, M, Pipe, Timeout)},
-      mainloop(Id, Port, M, Pipe);
+      From ! {Ref, portloop(PortRef, Port, M, Pipe, Timeout)},
+      mainloop(PortRef, Port, M, Pipe);
     {cast, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      portloop(Id, Port, M, Pipe, Timeout),
-      mainloop(Id, Port, M, Pipe);
+      portloop(PortRef, Port, M, Pipe, Timeout),
+      mainloop(PortRef, Port, M, Pipe);
     {'EXIT', _From, Reason} ->
       port_close(Port),
       exit(Reason)
   end.
 
-portloop(Id, Port, M, Pipe, Timeout) ->
+portloop(PortRef, Port, M, Pipe, Timeout) ->
   receive
     {Port, {data, Data}} ->
       try binary_to_term(Data, [safe]) of
         {call, F, A} ->
-          Result = tryapply(M, F, [Id | Pipe ++ A]),
+          Result = tryapply(M, F, [PortRef | Pipe ++ A]),
           Port ! {self(), {command, term_to_binary(Result)}},
-          portloop(Id, Port, M, Pipe, Timeout);
+          portloop(PortRef, Port, M, Pipe, Timeout);
         {cast, F, A} ->
-          tryapply(M, F, [Id | Pipe ++ A]),
-          portloop(Id, Port, M, Pipe, Timeout);
+          tryapply(M, F, [PortRef | Pipe ++ A]),
+          portloop(PortRef, Port, M, Pipe, Timeout);
         {info, List} -> 
-          io:format("inf ~p ~p~n", [Id, List]),
-          portloop(Id, Port, M, Pipe, Timeout);
+          io:format("inf ~p ~p~n", [PortRef, List]),
+          portloop(PortRef, Port, M, Pipe, Timeout);
         {error, Reason} ->
-          io:format("err ~p ~p~n", [Id, Reason]),
+          io:format("err ~p ~p~n", [PortRef, Reason]),
           {error, Reason};
         {ok, Results} ->
           {ok, Results}
@@ -87,9 +89,32 @@ portloop(Id, Port, M, Pipe, Timeout) ->
     {Port, {exit_status, Status}} ->
       exit(maps:get(Status, ?EXIT_REASONS, {respawn, Status}))
   after Timeout ->
-    io:format("err ~p ~p~n", [Id, timeout]),
+    io:format("err ~p ~p~n", [PortRef, timeout]),
     {error, timeout}
   end.
+
+register_name({global, Name}, Pid) ->
+  global:register_name(Name, Pid),
+  wait_for_name(Name);
+register_name({local, Name}, Pid) ->
+  register(Name, Pid);
+register_name(_PortRef, _Pid) ->
+  ok.
+
+send({global, Name}, Message) ->
+  global:send(Name, Message);
+send({local, Name}, Message) ->
+  Name ! Message;
+send(Pid, Message) ->
+  Pid ! Message.
+
+wait_for_name(Name) ->
+  wait_for_name(Name, false).
+wait_for_name(Name, false) ->
+  timer:sleep(500),
+  wait_for_name(Name, lists:member(Name, global:registered_names()));
+wait_for_name(_Name, true) ->
+  ok.
 
 tryapply(M, F, A) when M =/= undefined ->
   try
