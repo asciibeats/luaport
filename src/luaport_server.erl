@@ -75,7 +75,7 @@ portloop(PortRef, Port, M, Pipe, Timeout) ->
         {cast, F, A} ->
           tryapply(M, F, [PortRef | Pipe ++ A]),
           portloop(PortRef, Port, M, Pipe, Timeout);
-        {info, List} -> 
+        {info, List} ->
           io:format("inf ~p ~p~n", [PortRef, List]),
           portloop(PortRef, Port, M, Pipe, Timeout);
         {error, Reason} ->

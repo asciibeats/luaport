@@ -15,7 +15,7 @@
 #endif
 
 #ifndef LUAP_BUFFER
-#define LUAP_BUFFER 512
+  #define LUAP_BUFFER 512
 #endif
 
 #define LUAP_PACKET 4
