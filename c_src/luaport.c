@@ -42,10 +42,10 @@
 #define write_info(...) write_message("info", __VA_ARGS__)
 
 static void write_message(const char *type, const char* fmt, ...);
-static int e2l_any(const char *buf, int *index, lua_State *L);
+static int e2l_any(const unsigned char *buf, int *index, lua_State *L);
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb);
 
-static inline uint32_t read4(char* buf)
+static inline uint32_t read4(const unsigned char *buf)
 {
   return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
@@ -55,7 +55,7 @@ static inline uint32_t swap4(uint32_t val)
   return (val & 0xff000000) >> 24 | (val & 0x00ff0000) >> 8 | (val & 0x0000ff00) << 8 | (val & 0x000000ff) << 24;
 }
 
-static int read_bytes(char *buf, int len)
+static int read_bytes(unsigned char *buf, int len)
 {
   ssize_t s, c = 0;
 
@@ -79,7 +79,7 @@ static int read_bytes(char *buf, int len)
   return len;
 }
 
-static int write_bytes(char *buf, int len)
+static int write_bytes(unsigned char *buf, int len)
 {
   ssize_t s, c = 0;
 
@@ -103,14 +103,14 @@ static int write_bytes(char *buf, int len)
   return len;
 }
 
-static int read_term(char *buf, int *index)
+static int read_term(unsigned char *buf, int *index)
 {
   if (read_bytes(buf, LUAP_PACKET) != LUAP_PACKET)
   {
     return -1;
   }
 
-  size_t len = read4(buf);
+  uint32_t len = read4(buf);
 
   if (len > LUAP_BUFFER)
   {
@@ -124,8 +124,8 @@ static int read_term(char *buf, int *index)
 static int write_term(ei_x_buff *eb)
 {
   uint32_t len = swap4(eb->index);
-  write_bytes((char*)&len, LUAP_PACKET);
-  len = write_bytes(eb->buff, eb->index);
+  write_bytes((unsigned char *)&len, LUAP_PACKET);
+  len = write_bytes((unsigned char *)eb->buff, eb->index);
   eb->index = 0;
   return len;
 }
@@ -214,11 +214,11 @@ static int luap_ismetatype(lua_State *L, int index, int type)
   }
 }
 
-static int e2l_integer(const char *buf, int *index, lua_State *L)
+static int e2l_integer(const unsigned char *buf, int *index, lua_State *L)
 {
   long l;
 
-  if (ei_decode_long(buf, index, &l))
+  if (ei_decode_long((const char *)buf, index, &l))
   {
     return 1;
   }
@@ -227,11 +227,11 @@ static int e2l_integer(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_float(const char *buf, int *index, lua_State *L)
+static int e2l_float(const unsigned char *buf, int *index, lua_State *L)
 {
   double d;
 
-  if (ei_decode_double(buf, index, &d))
+  if (ei_decode_double((const char *)buf, index, &d))
   {
     return 1;
   }
@@ -240,15 +240,15 @@ static int e2l_float(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_string(const char *buf, int *index, lua_State *L)
+static int e2l_string(const unsigned char *buf, int *index, lua_State *L)
 {
   int type;
   int size;
 
-  ei_get_type(buf, index, &type, &size);
+  ei_get_type((const char *)buf, index, &type, &size);
   char str[size + 1];
 
-  if (ei_decode_string(buf, index, str))
+  if (ei_decode_string((const char *)buf, index, str))
   {
     return 1;
   }
@@ -265,15 +265,15 @@ static int e2l_string(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_binary(const char *buf, int *index, lua_State *L)
+static int e2l_binary(const unsigned char *buf, int *index, lua_State *L)
 {
   int type;
   long size = 0;
 
-  ei_get_type(buf, index, &type, (int *)&size);
+  ei_get_type((const char *)buf, index, &type, (int *)&size);
   char str[size];
 
-  if (ei_decode_binary(buf, index, str, &size))
+  if (ei_decode_binary((const char *)buf, index, str, &size))
   {
     return 1;
   }
@@ -282,11 +282,11 @@ static int e2l_binary(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_atom(const char *buf, int *index, lua_State *L)
+static int e2l_atom(const unsigned char *buf, int *index, lua_State *L)
 {
   char atom[MAXATOMLEN];
 
-  if (ei_decode_atom(buf, index, atom))
+  if (ei_decode_atom((const char *)buf, index, atom))
   {
     return 1;
   }
@@ -311,11 +311,11 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_tuple(const char *buf, int *index, lua_State *L)
+static int e2l_tuple(const unsigned char *buf, int *index, lua_State *L)
 {
   int arity;
 
-  if (ei_decode_tuple_header(buf, index, &arity))
+  if (ei_decode_tuple_header((const char *)buf, index, &arity))
   {
     return 1;
   }
@@ -332,11 +332,11 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_list(const char *buf, int *index, lua_State *L)
+static int e2l_list(const unsigned char *buf, int *index, lua_State *L)
 {
   int arity;
 
-  if (ei_decode_list_header(buf, index, &arity))
+  if (ei_decode_list_header((const char *)buf, index, &arity))
   {
     return 1;
   }
@@ -350,23 +350,23 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
     lua_rawseti(L, -2, i);
   }
   
-  ei_skip_term(buf, index);
+  ei_skip_term((const char *)buf, index);
   return 0;
 }
 
-static int e2l_emptylist(const char *buf, int *index, lua_State *L)
+static int e2l_emptylist(const unsigned char *buf, int *index, lua_State *L)
 {
   lua_createtable(L, 0, 0);
   luap_setmetatype(L, -1, LUAP_TLIST);
-  ei_skip_term(buf, index);
+  ei_skip_term((const char *)buf, index);
   return 0;
 }
 
-static int e2l_map(const char *buf, int *index, lua_State *L)
+static int e2l_map(const unsigned char *buf, int *index, lua_State *L)
 {
   int arity;
 
-  if (ei_decode_map_header(buf, index, &arity))
+  if (ei_decode_map_header((const char *)buf, index, &arity))
   {
     return 1;
   }
@@ -383,14 +383,14 @@ static int e2l_map(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
+static int e2l_args(const unsigned char *buf, int *index, lua_State *L, int *nargs)
 {
   int type;
-  ei_get_type(buf, index, &type, nargs);
+  ei_get_type((const char *)buf, index, &type, nargs);
 
   if (type == ERL_LIST_EXT)
   {
-    if (ei_decode_list_header(buf, index, nargs))
+    if (ei_decode_list_header((const char *)buf, index, nargs))
     {
       return -1;
     }
@@ -400,14 +400,14 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
       e2l_any(buf, index, L);
     }
 
-    ei_skip_term(buf, index);
+    ei_skip_term((const char *)buf, index);
     return 0;
   }
   else if (type == ERL_STRING_EXT)
   {
     char str[*nargs + 1];
 
-    if (ei_decode_string(buf, index, str))
+    if (ei_decode_string((const char *)buf, index, str))
     {
       return -1;
     }
@@ -421,17 +421,17 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
   }
   else if (type == ERL_NIL_EXT)
   {
-    ei_skip_term(buf, index);
+    ei_skip_term((const char *)buf, index);
     return 0;
   }
 
   return -1;
 }
 
-static int e2l_any(const char *buf, int *index, lua_State *L)
+static int e2l_any(const unsigned char *buf, int *index, lua_State *L)
 {
   int type, size;
-  ei_get_type(buf, index, &type, &size);
+  ei_get_type((const char *)buf, index, &type, &size);
   
   switch (type)
   {
@@ -645,7 +645,7 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 static int luaport_call(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
-  char *buf = lua_touserdata(L, lua_upvalueindex(3));
+  unsigned char *buf = lua_touserdata(L, lua_upvalueindex(3));
   int *index = lua_touserdata(L, lua_upvalueindex(4));
 
   ei_x_encode_version(eb);
@@ -664,7 +664,7 @@ static int luaport_call(lua_State *L)
 
   int version;
 
-  if (ei_decode_version(buf, index, &version))
+  if (ei_decode_version((const char *)buf, index, &version))
   {
     exit(EXIT_CALL_VERSION);
   }
@@ -774,7 +774,7 @@ static const struct luaL_Reg luaport_func[] = {
 
 static int luaopen_luaport(lua_State *L)
 {
-  char *buf = malloc(LUAP_BUFFER);
+  unsigned char *buf = malloc(LUAP_BUFFER);
   int *index = malloc(sizeof(int));
   ei_x_buff *eb = malloc(sizeof(ei_x_buff));
   ei_x_new(eb);
@@ -808,7 +808,7 @@ static int luaopen_luaport(lua_State *L)
 
 int main(int argc, char *argv[])
 {
-  char buf[LUAP_BUFFER];
+  unsigned char buf[LUAP_BUFFER];
   int index;
   ei_x_buff eb;
   ei_x_new(&eb);
@@ -843,17 +843,17 @@ int main(int argc, char *argv[])
 
   while (read_term(buf, &index) > 0)
   {
-    if (ei_decode_version(buf, &index, &version))
+    if (ei_decode_version((const char *)buf, &index, &version))
     {
       exit(EXIT_BAD_VERSION);
     }
 
-    if (ei_decode_tuple_header(buf, &index, &arity) || arity != 2)
+    if (ei_decode_tuple_header((const char *)buf, &index, &arity) || arity != 2)
     {
       exit(EXIT_BAD_COMMAND);
     }
 
-    if (ei_decode_atom(buf, &index, func))
+    if (ei_decode_atom((const char *)buf, &index, func))
     {
       exit(EXIT_BAD_ATOM);
     }
