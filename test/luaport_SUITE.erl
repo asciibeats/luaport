@@ -1,4 +1,4 @@
--module(base_SUITE).
+-module(luaport_SUITE).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -15,7 +15,7 @@ all() -> [case1].
 
 case1(_Config) ->
   application:start(luaport),
-  Path = filename:join([code:priv_dir(luaport), modes, base]),
+  Path = filename:join([code:priv_dir(luaport), lua]),
   {ok, Pid} = luaport:spawn(banane, Path, ?MODULE),
   {ok, [128]} = luaport:call(Pid, echo, [128]),
   {ok, [-2147483648, 2147483647]} = luaport:call(Pid, echo, [-2147483648, 2147483647]),

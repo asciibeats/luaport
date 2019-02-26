@@ -830,6 +830,15 @@ static int luaport_interval(lua_State *L)
 
 static int luaport_cancel(lua_State *L)
 {
+  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
+
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 2);
+  ei_x_encode_atom(eb, "cancel");
+
+  l2e_integer(L, 1, eb);
+
+  write_term(eb);
   return 0;
 }
 

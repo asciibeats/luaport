@@ -19,10 +19,12 @@ function exec(name, ...)
 end
 
 function after(time, note)
-  luaport.after(time, function (s) print(s, time, note) end, 'after')
+  local ref = luaport.after(time, function (s) print(s, time, note) end, 'after')
+  luaport.cancel(ref)
 end
 
 function interval(time)
   local i = 0
-  luaport.interval(time, function (s) print(s, time, i); i = i + 1 end, 'interval')
+  local ref = luaport.interval(time, function (s) print(s, time, i); i = i + 1 end, 'interval')
+  luaport.cancel(ref)
 end
