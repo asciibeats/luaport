@@ -3,6 +3,7 @@ local some, values = luaport.call.init('sunshine')
 print('hello', some, values)
 
 function echo(...)
+  print(...)
   return ...
 end
 

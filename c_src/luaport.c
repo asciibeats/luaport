@@ -47,12 +47,12 @@
 
 static void write_message(const char *type, const char* fmt, ...);
 
-static inline uint32_t read4(const unsigned char *buf)
+static inline int read4(const char *buf)
 {
   return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
 
-static inline void write4(unsigned char *buf, uint32_t val)
+static inline void write4(char *buf, int val)
 {
   buf[0] = (val >> 24) & 0xff;
   buf[1] = (val >> 16) & 0xff;
@@ -60,7 +60,7 @@ static inline void write4(unsigned char *buf, uint32_t val)
   buf[3] = val & 0xff;
 }
 
-static inline uint32_t swap4(uint32_t val)
+static inline int swap4(int val)
 {
   return (val & 0xff000000) >> 24 | (val & 0x00ff0000) >> 8 | (val & 0x0000ff00) << 8 | (val & 0x000000ff) << 24;
 }
@@ -120,7 +120,7 @@ static int read_term(char *buf, int *index)
     return 0;
   }
 
-  uint32_t len = read4((unsigned char *)buf);
+  int len = read4(buf);
 
   if (len > LUAP_BUFFER)
   {
@@ -133,7 +133,7 @@ static int read_term(char *buf, int *index)
 
 static int write_term(ei_x_buff *eb)
 {
-  uint32_t len = swap4(eb->index);
+  int len = swap4(eb->index);
 
   if (write_bytes((char *)&len, LUAP_PACKET) != LUAP_PACKET)
   {
@@ -563,13 +563,14 @@ static void l2e_boolean(lua_State *L, int index, ei_x_buff *eb)
 static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
 {
   index = lua_absindex(L, index);
-  char *buf = eb->buff + eb->index;
+  int eb_index = eb->index + 1;
 
-  eb->buff[eb->index] = ERL_MAP_EXT;
-  eb->index += 5;
+  char b[5];
+  b[0] = ERL_MAP_EXT;
+  ei_x_append_buf(eb, b, 5);
 
-  int arity = 0;
   lua_pushnil(L);
+  int arity = 0;
 
   while (lua_next(L, index))
   {
@@ -579,7 +580,7 @@ static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
     arity++;
   }
 
-  write4((unsigned char *)buf + 1, arity);
+  write4(eb->buff + eb_index, arity);
 }
 
 static void l2e_table_tuple(lua_State *L, int index, ei_x_buff *eb)

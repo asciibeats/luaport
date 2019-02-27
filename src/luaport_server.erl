@@ -5,6 +5,7 @@
 -export([call/4]).
 -export([cast/4]).
 
+-define(ATOMS, [true, false, undefined]).
 -define(TIMEOUT, 5000).
 -define(EXIT_REASONS, #{
   0 => {shutdown, success},

@@ -17,7 +17,7 @@ case1(_Config) ->
   application:start(luaport),
   Path = filename:join([code:priv_dir(luaport), lua]),
   {ok, Pid} = luaport:spawn(banane, Path, ?MODULE),
-  {ok, [128]} = luaport:call(Pid, echo, [128]),
+  {ok, [[128]]} = luaport:call(Pid, echo, [[128]]),
   {ok, [-2147483648, 2147483647]} = luaport:call(Pid, echo, [-2147483648, 2147483647]),
   {error, "don't panic"} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
   luaport:cast(Pid, 'after', [300, first]),
