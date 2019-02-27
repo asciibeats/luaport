@@ -1,6 +1,6 @@
-print('hello')
-
 local some, values = luaport.call.init('sunshine')
+
+print('hello', some, values)
 
 function echo(...)
   return ...
@@ -18,13 +18,15 @@ function exec(name, ...)
   return luaport[name](...)
 end
 
-function after(time, note)
-  local ref = luaport.after(time, function (s) print(s, time, note) end, 'after')
-  luaport.cancel(ref)
+function after(time, ...)
+  return luaport.after(time, function (s, ...) print(s, ...) end, 'after', ...)
 end
 
-function interval(time)
+function interval(time, ...)
   local i = 0
-  local ref = luaport.interval(time, function (s) print(s, time, i); i = i + 1 end, 'interval')
+  return luaport.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
+end
+
+function cancel(ref)
   luaport.cancel(ref)
 end

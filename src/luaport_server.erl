@@ -36,8 +36,7 @@ init(PortRef, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pi
   process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
-  TRefs = #{},
-  {ok, []} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+  {TRefs, {ok, []}} = portloop(PortRef, Port, M, Pipe, #{}, Timeout),
   mainloop(PortRef, Port, M, Pipe, TRefs).
 
 call(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
@@ -55,16 +54,17 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
   receive
     {call, F, A, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      From ! {Ref, portloop(PortRef, Port, M, Pipe, TRefs, Timeout)},
-      mainloop(PortRef, Port, M, Pipe, TRefs);
+      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      From ! {Ref, Result},
+      mainloop(PortRef, Port, M, Pipe, NewTRefs);
     {cast, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
-      mainloop(PortRef, Port, M, Pipe, TRefs);
+      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      mainloop(PortRef, Port, M, Pipe, NewTRefs);
     {cast, LRef, Timeout} ->
       Port ! {self(), {command, term_to_binary(LRef)}},
-      portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
-      mainloop(PortRef, Port, M, Pipe, TRefs);
+      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      mainloop(PortRef, Port, M, Pipe, NewTRefs);
     {'EXIT', _From, Reason} ->
       port_close(Port),
       exit(Reason)
@@ -86,19 +86,21 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {'after', Time, LRef} ->
           {ok, TRef} = timer:send_after(Time, {cast, LRef, Timeout}),
-          portloop(PortRef, Port, M, Pipe, maps:put(LRef, TRef, TRefs), Timeout);
+          NewTRefs = maps:put(LRef, TRef, TRefs),
+          portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {interval, Time, LRef} ->
           {ok, TRef} = timer:send_interval(Time, {cast, LRef, Timeout}),
-          portloop(PortRef, Port, M, Pipe, maps:put(LRef, TRef, TRefs), Timeout);
+          NewTRefs = maps:put(LRef, TRef, TRefs),
+          portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {cancel, LRef} ->
-          {TRef, TRefs2} = maps:take(LRef, TRefs),
+          {TRef, NewTRefs} = maps:take(LRef, TRefs),
           timer:cancel(TRef),
-          portloop(PortRef, Port, M, Pipe, TRefs2, Timeout);
+          portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {error, Reason} ->
           io:format("err ~p ~p~n", [PortRef, Reason]),
-          {error, Reason};
+          {TRefs, {error, Reason}};
         {ok, Results} ->
-          {ok, Results}
+          {TRefs, {ok, Results}}
       catch
         error:badarg -> exit({respawn, unsafe_data})
       end;
