@@ -38,9 +38,6 @@
 #define EXIT_CALL_READ 220
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
-#define EXIT_AFTER_READ 230
-#define EXIT_AFTER_VERSION 231
-#define EXIT_AFTER_REF 232
 
 #define write_error(...) write_message("error", __VA_ARGS__)
 #define write_info(...) write_message("info", __VA_ARGS__)

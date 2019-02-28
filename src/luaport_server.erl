@@ -23,10 +23,7 @@
   216 => {respawn, bad_command},
   220 => {respawn, call_read},
   221 => {respawn, call_version},
-  222 => {respawn, call_result},
-  230 => {respawn, after_read},
-  231 => {respawn, after_version},
-  232 => {respawn, after_ref}}).
+  222 => {respawn, call_result}}).
 
 start_link(PortRef, Path, M, Pipe, Timeout) ->
   Pid = spawn_link(?MODULE, init, [PortRef, Path, M, Pipe, Timeout]),
