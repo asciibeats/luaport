@@ -74,7 +74,7 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
     {interval, LRef, Timeout} ->
       case maps:is_key(LRef, TRefs) of
         true ->
-          Port ! {self(), {command, term_to_binary(LRef)}},
+          Port ! {self(), {command, term_to_binary(-LRef)}},
           {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
           mainloop(PortRef, Port, M, Pipe, NewTRefs);
         false ->

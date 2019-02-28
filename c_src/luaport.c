@@ -505,7 +505,12 @@ static int e2l_call(const char *buf, int *index, lua_State *L, int *nargs)
     return -1;
   }
 
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, abs(ref));
+
+  if (ref > 0)
+  {
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
+  }
 
   int top = lua_gettop(L);
   *nargs = (int)luaL_len(L, top);
@@ -1024,7 +1029,7 @@ int main(int argc, char *argv[])
         exit(EXIT_BAD_ARGS);
       }
     }
-    else if (type == ERL_SMALL_INTEGER_EXT)
+    else if (type == ERL_SMALL_INTEGER_EXT || type == ERL_INTEGER_EXT)
     {
       if (e2l_call(buf, &index, L, &nargs))
       {
