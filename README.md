@@ -70,6 +70,13 @@ Requiring modules works normally. You can put a module.lua or module.so into pat
 ```lua
 local module = require('module')
 ```
+Lua has no delayed call mechanism, therefore LuaPort provides an interface to erlangs timer functions. The number is the time to wait in milliseconds.
+```lua
+luaport.after(3000, function (str) print(str) end, 'call once, if not canceled')
+
+local ref = luaport.interval(1000, function (str) print(str) end, 'call repeatedly until canceled')
+luaport.cancel(ref)
+```
 
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
