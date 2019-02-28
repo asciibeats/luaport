@@ -62,10 +62,24 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
       Port ! {self(), {command, term_to_binary({F, A})}},
       {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
       mainloop(PortRef, Port, M, Pipe, NewTRefs);
-    {cast, LRef, Timeout} ->
-      Port ! {self(), {command, term_to_binary(LRef)}},
-      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
-      mainloop(PortRef, Port, M, Pipe, NewTRefs);
+    {'after', LRef, Timeout} ->
+      case maps:take(LRef, TRefs) of
+        {_TRef, NewTRefs} ->
+          Port ! {self(), {command, term_to_binary(LRef)}},
+          {NewerTRefs, _Result} = portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout),
+          mainloop(PortRef, Port, M, Pipe, NewerTRefs);
+        error ->
+          mainloop(PortRef, Port, M, Pipe, TRefs)
+      end;
+    {interval, LRef, Timeout} ->
+      case maps:is_key(LRef, TRefs) of
+        true ->
+          Port ! {self(), {command, term_to_binary(LRef)}},
+          {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+          mainloop(PortRef, Port, M, Pipe, NewTRefs);
+        false ->
+          mainloop(PortRef, Port, M, Pipe, TRefs)
+      end;
     {'EXIT', _From, Reason} ->
       port_close(Port),
       exit(Reason)
@@ -86,11 +100,11 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
           io:format("inf ~p ~p~n", [PortRef, List]),
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {'after', Time, LRef} ->
-          {ok, TRef} = timer:send_after(Time, {cast, LRef, Timeout}),
+          {ok, TRef} = timer:send_after(Time, {'after', LRef, Timeout}),
           NewTRefs = maps:put(LRef, TRef, TRefs),
           portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {interval, Time, LRef} ->
-          {ok, TRef} = timer:send_interval(Time, {cast, LRef, Timeout}),
+          {ok, TRef} = timer:send_interval(Time, {interval, LRef, Timeout}),
           NewTRefs = maps:put(LRef, TRef, TRefs),
           portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {cancel, LRef} ->

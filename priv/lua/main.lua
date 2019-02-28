@@ -27,7 +27,3 @@ function interval(time, ...)
   local i = 0
   return luaport.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
 end
-
-function cancel(ref)
-  luaport.cancel(ref)
-end

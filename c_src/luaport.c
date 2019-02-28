@@ -244,7 +244,7 @@ static int e2l_integer(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_ref(const char *buf, int *index, lua_State *L)
+/*static int e2l_ref(const char *buf, int *index, lua_State *L)
 {
   erlang_ref *ref = lua_newuserdata(L, sizeof(erlang_ref));
 
@@ -257,7 +257,7 @@ static int e2l_ref(const char *buf, int *index, lua_State *L)
   }
 
   return 0;
-}
+}*/
 
 static int e2l_float(const char *buf, int *index, lua_State *L)
 {
@@ -442,8 +442,8 @@ static int e2l_any(const char *buf, int *index, lua_State *L)
       return e2l_tuple(buf, index, L);
     case ERL_MAP_EXT:
       return e2l_map(buf, index, L);
-    case ERL_REFERENCE_EXT:
-      return e2l_ref(buf, index, L);
+    /*case ERL_REFERENCE_EXT:
+      return e2l_ref(buf, index, L);*/
     default:
       return -1;
   }
@@ -506,7 +506,6 @@ static int e2l_call(const char *buf, int *index, lua_State *L, int *nargs)
   }
 
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-  //luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
   int top = lua_gettop(L);
   *nargs = (int)luaL_len(L, top);
@@ -637,11 +636,11 @@ static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
   }
 }
 
-static void l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
+/*static void l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
 {
   const erlang_ref *ref = lua_touserdata(L, index);
   ei_x_encode_ref(eb, ref);
-}
+}*/
 
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 {
@@ -669,9 +668,9 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
     case LUA_TNIL:
       ei_x_encode_atom(eb, "undefined");
       break;
-    case LUA_TUSERDATA:
+    /*case LUA_TUSERDATA:
       l2e_userdata(L, index, eb);
-      break;
+      break;*/
     default:
       luaL_error(L, "unsupported type");
   }
@@ -831,13 +830,20 @@ static int luaport_interval(lua_State *L)
 
 static int luaport_cancel(lua_State *L)
 {
+  lua_Integer ref = luaL_checkinteger(L, 1);
+
+  if (lua_rawgeti(L, LUA_REGISTRYINDEX, ref) == LUA_TNIL)
+  {
+    luaL_argerror(L, 1, "not a reference");
+  }
+
+  luaL_unref(L, LUA_REGISTRYINDEX, ref);
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
 
   ei_x_encode_version(eb);
   ei_x_encode_tuple_header(eb, 2);
   ei_x_encode_atom(eb, "cancel");
-
-  l2e_integer(L, 1, eb);
+  ei_x_encode_long(eb, ref);
 
   write_term(eb);
   return 0;
@@ -846,6 +852,7 @@ static int luaport_cancel(lua_State *L)
 static int luaport_print(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
+
   ei_x_encode_version(eb);
   ei_x_encode_tuple_header(eb, 2);
   ei_x_encode_atom(eb, "info");
