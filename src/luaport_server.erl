@@ -105,9 +105,13 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
           NewTRefs = maps:put(LRef, TRef, TRefs),
           portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
         {cancel, LRef} ->
-          {TRef, NewTRefs} = maps:take(LRef, TRefs),
-          timer:cancel(TRef),
-          portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
+          case maps:take(LRef, TRefs) of
+            {TRef, NewTRefs} ->
+              timer:cancel(TRef),
+              portloop(PortRef, Port, M, Pipe, NewTRefs, Timeout);
+            error ->
+              portloop(PortRef, Port, M, Pipe, TRefs, Timeout)
+          end;
         {error, Reason} ->
           io:format("err ~p ~p~n", [PortRef, Reason]),
           {TRefs, {error, Reason}};
