@@ -837,20 +837,19 @@ static int luaport_cancel(lua_State *L)
 {
   lua_Integer ref = luaL_checkinteger(L, 1);
 
-  if (lua_rawgeti(L, LUA_REGISTRYINDEX, ref) == LUA_TNIL)
+  if (lua_rawgeti(L, LUA_REGISTRYINDEX, ref) != LUA_TNIL)
   {
-    luaL_argerror(L, 1, "not a reference");
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
+    ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
+
+    ei_x_encode_version(eb);
+    ei_x_encode_tuple_header(eb, 2);
+    ei_x_encode_atom(eb, "cancel");
+    ei_x_encode_long(eb, ref);
+
+    write_term(eb);
   }
 
-  luaL_unref(L, LUA_REGISTRYINDEX, ref);
-  ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
-
-  ei_x_encode_version(eb);
-  ei_x_encode_tuple_header(eb, 2);
-  ei_x_encode_atom(eb, "cancel");
-  ei_x_encode_long(eb, ref);
-
-  write_term(eb);
   return 0;
 }
 
