@@ -31,12 +31,12 @@
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
 
-static inline int read4(const char *buf)
+static size_t read4(const unsigned char *buf)
 {
   return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
 
-static inline void write4(char *buf, int val)
+static void write4(char *buf, int val)
 {
   buf[0] = (val >> 24) & 0xff;
   buf[1] = (val >> 16) & 0xff;
@@ -44,7 +44,7 @@ static inline void write4(char *buf, int val)
   buf[3] = val & 0xff;
 }
 
-static inline int swap4(int val)
+static size_t swap4(size_t val)
 {
   return (val & 0xff000000) >> 24 | (val & 0x00ff0000) >> 8 | (val & 0x0000ff00) << 8 | (val & 0x000000ff) << 24;
 }
@@ -104,7 +104,7 @@ static int read_term(char *buf, int *index)
     return 0;
   }
 
-  int len = read4(buf);
+  size_t len = read4((unsigned char *)buf);
 
   if (len > LUAP_BUFFER)
   {
@@ -117,7 +117,7 @@ static int read_term(char *buf, int *index)
 
 static int write_term(ei_x_buff *eb)
 {
-  int len = swap4(eb->index);
+  size_t len = swap4(eb->index);
 
   if (write_bytes((char *)&len, LUAP_PACKET) != LUAP_PACKET)
   {
@@ -230,28 +230,28 @@ static int e2l_binary(const char *buf, int *index, lua_State *L)
 
 static int e2l_atom(const char *buf, int *index, lua_State *L)
 {
-  char atom[MAXATOMLEN];
+  char a[MAXATOMLEN];
 
-  if (ei_decode_atom(buf, index, atom))
+  if (ei_decode_atom(buf, index, a))
   {
     return -1;
   }
 
-  if (!strcmp(atom, "true"))
+  if (!strcmp(a, "true"))
   {
     lua_pushboolean(L, 1);
   }
-  else if (!strcmp(atom, "false"))
+  else if (!strcmp(a, "false"))
   {
     lua_pushboolean(L, 0);
   }
-  else if (!strcmp(atom, "undefined"))
+  else if (!strcmp(a, "undefined"))
   {
     lua_pushnil(L);
   }
   else
   {
-    lua_pushstring(L, atom);
+    lua_pushstring(L, a);
   }
 
   return 0;
@@ -281,9 +281,7 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 
 static int e2l_string(const char *buf, int *index, lua_State *L)
 {
-  int type;
-  int size;
-
+  int type, size;
   ei_get_type(buf, index, &type, &size);
   char s[size + 1];
 
