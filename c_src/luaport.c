@@ -356,9 +356,6 @@ static int e2l_map(const char *buf, int *index, lua_State *L)
 {
   erlang_ref *ref = lua_newuserdata(L, sizeof(erlang_ref));
 
-  int type, size;
-  ei_get_type(buf, index, &type, &size);
-
   if (ei_decode_ref(buf, index, ref))
   {
     return -1;
@@ -670,7 +667,7 @@ static void l2e_call(lua_State *L, int index, ei_x_buff *eb)
     lua_rawseti(L, index, i);
   }
 
-	int ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  int ref = luaL_ref(L, LUA_REGISTRYINDEX);
   lua_pushinteger(L, ref);
   ei_x_encode_long(eb, ref);
 }
