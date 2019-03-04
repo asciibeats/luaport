@@ -8,7 +8,7 @@
 #include <ei.h>
 
 #ifndef LUAP_BUFFER
-  #define LUAP_BUFFER 512
+  #define LUAP_BUFFER 2048
 #endif
 
 #define LUAP_PACKET 4
@@ -27,7 +27,9 @@
 #define EXIT_BAD_FUNC 213
 #define EXIT_BAD_ARGS 214
 #define EXIT_BAD_CALL 215
-#define EXIT_BAD_COMMAND 216
+#define EXIT_BAD_BINARY 216
+#define EXIT_BAD_CODE 217
+#define EXIT_BAD_COMMAND 218
 #define EXIT_CALL_READ 220
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
@@ -1002,6 +1004,25 @@ int main(int argc, char *argv[])
       {
         exit(EXIT_BAD_CALL);
       }
+    }
+    else if (type == ERL_BINARY_EXT)
+    {
+      long size = 0;
+
+      ei_get_type(buf, &index, &type, (int *)&size);
+      char s[size];
+
+      if (ei_decode_binary(buf, &index, s, NULL))
+      {
+        exit(EXIT_BAD_BINARY);
+      }
+
+      if (luaL_loadbuffer(L, s, size, s))
+      {
+        exit(EXIT_BAD_CODE);
+      }
+
+      nargs = 0;
     }
     else
     {

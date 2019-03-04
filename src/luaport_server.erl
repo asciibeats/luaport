@@ -4,6 +4,7 @@
 -export([init/5]).
 -export([call/4]).
 -export([cast/4]).
+-export([load/3]).
 
 -define(ATOMS, [true, false, undefined]).
 -define(TIMEOUT, 5000).
@@ -20,7 +21,9 @@
   213 => {respawn, bad_func},
   214 => {respawn, bad_args},
   215 => {respawn, bad_call},
-  216 => {respawn, bad_command},
+  216 => {respawn, bad_binary},
+  217 => {respawn, bad_code},
+  218 => {respawn, bad_command},
   220 => {respawn, call_read},
   221 => {respawn, call_version},
   222 => {respawn, call_result}}).
@@ -48,6 +51,13 @@ cast(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
   send(PortRef, {cast, F, A, Timeout}),
   ok.
 
+load(PortRef, Binary, Timeout) when is_binary(Binary) ->
+  Ref = make_ref(),
+  send(PortRef, {load, Binary, Timeout, self(), Ref}),
+  receive
+    {Ref, Result} -> Result
+  end.
+
 mainloop(PortRef, Port, M, Pipe, TRefs) ->
   receive
     {call, F, A, Timeout, From, Ref} ->
@@ -58,6 +68,11 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
     {cast, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
       {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      mainloop(PortRef, Port, M, Pipe, NewTRefs);
+    {load, Binary, Timeout, From, Ref} ->
+      Port ! {self(), {command, term_to_binary(Binary)}},
+      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      From ! {Ref, Result},
       mainloop(PortRef, Port, M, Pipe, NewTRefs);
     {'after', LRef, Timeout} ->
       case maps:take(LRef, TRefs) of

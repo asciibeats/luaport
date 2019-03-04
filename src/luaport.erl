@@ -5,6 +5,7 @@
 -export([despawn/1]).
 -export([call/2, call/3, call/4]).
 -export([cast/2, cast/3, cast/4]).
+-export([load/2, load/3]).
 
 spawn(PortRef, Path) ->
   ?MODULE:spawn(PortRef, Path, undefined).
@@ -34,3 +35,8 @@ cast(PortRef, F, A) ->
  cast(PortRef, F, A, 1000).
 cast(PortRef, F, A, Timeout) ->
  luaport_server:cast(PortRef, F, A, Timeout).
+
+load(PortRef, Binary) ->
+ load(PortRef, Binary, 1000).
+load(PortRef, Binary, Timeout) ->
+ luaport_server:load(PortRef, Binary, Timeout).

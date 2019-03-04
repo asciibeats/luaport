@@ -2,7 +2,7 @@ ERTS_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts/ert
 ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, include)]).")
 ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, lib)]).")
 
-LUAP_BUFFER ?= 512
+LUAP_BUFFER ?= 2048
 
 DEFINES := -D_REENTRANT=PTHREADS
 DEFINES += -D_GNU_SOURCE
