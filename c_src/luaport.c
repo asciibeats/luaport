@@ -825,13 +825,13 @@ static int luaport_sleep(lua_State *L)
 {
   unsigned long t = (unsigned long)luaL_checkinteger(L, 1);
 
-	struct timespec rqtp;
+  struct timespec rqtp;
   rqtp.tv_sec = t / 1000;
   rqtp.tv_nsec = t * 1000000L % 1000000000L;
 
   while (nanosleep(&rqtp, &rqtp)) {}
 
-	return 0;
+  return 0;
 }
 
 static int luaport_aslist(lua_State *L)
