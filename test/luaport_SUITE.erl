@@ -40,7 +40,7 @@ case1(_Config) ->
   {ok, _Pid4} = luaport:respawn(PortRef3),
   luaport:cast(PortRef3, print, [<<"done">>]),
   ok = luaport:despawn(PortRef3),
-  luaport:cast(Pid, exec, [sleep, 3000], 4000),
+  luaport:cast(Pid, exec, [sleep, 500]),
   {ok, [true]} = luaport:call(Pid, exec, [islist, "abc"]),
   {ok, [true]} = luaport:call(Pid, exec, [istuple, {}]),
   {ok, [true]} = luaport:call(Pid, exec, [ismap, #{}]),
