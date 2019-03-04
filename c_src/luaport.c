@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
@@ -820,6 +821,19 @@ static int luaport_print(lua_State *L)
   return 0;
 }
 
+static int luaport_sleep(lua_State *L)
+{
+  unsigned long t = (unsigned long)luaL_checkinteger(L, 1);
+
+	struct timespec rqtp;
+  rqtp.tv_sec = t / 1000;
+  rqtp.tv_nsec = t * 1000000L % 1000000000L;
+
+  while (nanosleep(&rqtp, &rqtp)) {}
+
+	return 0;
+}
+
 static int luaport_aslist(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -860,6 +874,7 @@ static int luaport_ismap(lua_State *L)
 }
 
 static const struct luaL_Reg luaport_func[] = {
+  {"sleep", luaport_sleep},
   {"aslist", luaport_aslist},
   {"astuple", luaport_astuple},
   {"asmap", luaport_asmap},
