@@ -22,8 +22,7 @@
   214 => {respawn, bad_args},
   215 => {respawn, bad_call},
   216 => {respawn, bad_binary},
-  217 => {respawn, bad_code},
-  218 => {respawn, bad_command},
+  217 => {respawn, bad_command},
   220 => {respawn, call_read},
   221 => {respawn, call_version},
   222 => {respawn, call_result}}).
@@ -128,7 +127,7 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
               portloop(PortRef, Port, M, Pipe, TRefs, Timeout)
           end;
         {error, Reason} ->
-          io:format("err ~p ~p~n", [PortRef, Reason]),
+          io:format("err ~p ~s~n", [PortRef, Reason]),
           {TRefs, {error, Reason}};
         {ok, Results} ->
           {TRefs, {ok, Results}}

@@ -61,6 +61,7 @@ case1(_Config) ->
   {ok, []} = luaport:load(Pid5, Binary2),
   luaport:cast(Pid5, func2),
   luaport:cast(Pid5, func1),
+  {error, _Reason} = luaport:load(Pid5, <<"end">>),
   {ok, []} = luaport:load(Pid5, <<"print('nice')">>),
   {ok, []} = luaport:load(Pid5, <<"a = 42">>),
   {ok, [42]} = luaport:load(Pid5, <<"return a">>),

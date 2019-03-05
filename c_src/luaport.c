@@ -28,8 +28,7 @@
 #define EXIT_BAD_ARGS 214
 #define EXIT_BAD_CALL 215
 #define EXIT_BAD_BINARY 216
-#define EXIT_BAD_CODE 217
-#define EXIT_BAD_COMMAND 218
+#define EXIT_BAD_COMMAND 217
 #define EXIT_CALL_READ 220
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
@@ -691,6 +690,18 @@ static void l2e_ok(lua_State *L, int index, ei_x_buff *eb)
   l2e_args(L, index, eb);
 }
 
+static void l2e_pcall(lua_State *L, int nargs, ei_x_buff *eb)
+{
+  if (lua_pcall(L, nargs, LUA_MULTRET, 0))
+  {
+    l2e_error(L, 1, eb);
+  }
+  else
+  {
+    l2e_ok(L, 1, eb);
+  }
+}
+
 static int luaport_call(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
@@ -997,6 +1008,8 @@ int main(int argc, char *argv[])
       {
         exit(EXIT_BAD_ARGS);
       }
+
+      l2e_pcall(L, nargs, &eb);
     }
     else if (type == ERL_SMALL_INTEGER_EXT || type == ERL_INTEGER_EXT)
     {
@@ -1004,38 +1017,34 @@ int main(int argc, char *argv[])
       {
         exit(EXIT_BAD_CALL);
       }
+
+      l2e_pcall(L, nargs, &eb);
     }
     else if (type == ERL_BINARY_EXT)
     {
       long size = 0;
 
       ei_get_type(buf, &index, &type, (int *)&size);
-      char s[size];
+      char s[size + 1];
+      s[size] = 0;
 
       if (ei_decode_binary(buf, &index, s, NULL))
       {
         exit(EXIT_BAD_BINARY);
       }
 
-      if (luaL_loadbuffer(L, s, size, s))
+      if (luaL_loadbuffer(L, s, size, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
       {
-        exit(EXIT_BAD_CODE);
+        l2e_error(L, 1, &eb);
       }
-
-      nargs = 0;
+      else
+      {
+        l2e_ok(L, 1, &eb);
+      }
     }
     else
     {
       exit(EXIT_BAD_COMMAND);
-    }
-
-    if (lua_pcall(L, nargs, LUA_MULTRET, 0))
-    {
-      l2e_error(L, 1, &eb);
-    }
-    else
-    {
-      l2e_ok(L, 1, &eb);
     }
 
     write_term(&eb);
