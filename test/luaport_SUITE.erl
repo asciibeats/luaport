@@ -67,7 +67,8 @@ case1(_Config) ->
   {ok, [42]} = luaport:load(Pid5, <<"return a">>),
   {ok, []} = luaport:load(Pid5, <<"a = nil">>),
   {ok, [undefined]} = luaport:load(Pid5, <<"return a">>),
-  {ok, [666]} = luaport:load(Pid5, <<"return 666">>),
+  {ok, []} = luaport:load(Pid5, <<"function something() return 666 end">>),
+  {ok, [666]} = luaport:load(Pid5, <<"return something()">>),
   ok = luaport:despawn(nil),
   application:stop(luaport).
 
