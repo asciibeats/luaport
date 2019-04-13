@@ -60,6 +60,14 @@ The port's reference is the first argument of every callback, followed by the pi
 init(myid, one, "another", String, Number) ->
   [#{string => String}, Number].
 ```
+If you want to insert or just execute some code during runtime, use the load function.
+```erlang
+{ok, []} = luaport:load(Pid, <<"function something() return 666 end">>),
+{ok, [666]} = luaport:call(Pid, 'something').
+```
+```erlang
+{ok, []} = luaport:load(Pid, <<"print('nice')">>).
+```
 To be able to continuously call or cast functions after accidental or intended respawns, you could use `{global, Name}` or `{local, Name}` as reference to register the port.
 ```erlang
 {ok, _Pid1} = luaport:spawn({local, myid}, "path/to/scripts"),
