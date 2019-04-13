@@ -81,7 +81,8 @@ local module = require('module')
 Lua has no delayed call mechanism, therefore LuaPort provides an interface to erlangs timer functions. The number is the time to wait in milliseconds.
 ```lua
 luaport.after(3000, function (str) print(str) end, 'call once, if not canceled')
-
+```
+```lua
 local ref = luaport.interval(1000, function (str) print(str) end, 'call repeatedly until canceled')
 luaport.cancel(ref)
 ```
