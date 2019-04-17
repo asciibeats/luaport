@@ -63,7 +63,7 @@ init(myid, one, "another", String, Number) ->
 If you want to insert or just execute some code during runtime, use the load function.
 ```erlang
 {ok, []} = luaport:load(Pid, <<"function something() return 666 end">>),
-{ok, [666]} = luaport:call(Pid, 'something').
+{ok, [666]} = luaport:call(Pid, something).
 ```
 ```erlang
 {ok, []} = luaport:load(Pid, <<"print('nice')">>).
