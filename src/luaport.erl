@@ -3,8 +3,8 @@
 -export([spawn/2, spawn/3, spawn/4, spawn/5]).
 -export([respawn/1]).
 -export([despawn/1]).
--export([call/2, call/3, call/4]).
--export([cast/2, cast/3, cast/4]).
+-export([call/2, call/3, call/4, call/5]).
+-export([cast/2, cast/3, cast/4, cast/5]).
 -export([load/2, load/3]).
 
 spawn(PortRef, Path) ->
