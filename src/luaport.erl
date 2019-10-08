@@ -25,16 +25,20 @@ despawn(PortRef) ->
 call(PortRef, F) ->
   call(PortRef, F, []).
 call(PortRef, F, A) ->
-  call(PortRef, F, A, 1000).
-call(PortRef, F, A, Timeout) ->
-  luaport_server:call(PortRef, F, A, Timeout).
+  call(PortRef, F, A, []).
+call(PortRef, F, A, Pipe) ->
+  call(PortRef, F, A, Pipe, 1000).
+call(PortRef, F, A, Pipe, Timeout) ->
+  luaport_server:call(PortRef, F, A, Pipe, Timeout).
 
 cast(PortRef, F) ->
  cast(PortRef, F, []).
 cast(PortRef, F, A) ->
- cast(PortRef, F, A, 1000).
-cast(PortRef, F, A, Timeout) ->
- luaport_server:cast(PortRef, F, A, Timeout).
+ cast(PortRef, F, A, []).
+cast(PortRef, F, A, Pipe) ->
+ cast(PortRef, F, A, Pipe, 1000).
+cast(PortRef, F, A, Pipe, Timeout) ->
+ luaport_server:cast(PortRef, F, A, Pipe, Timeout).
 
 load(PortRef, Binary) ->
  load(PortRef, Binary, 1000).

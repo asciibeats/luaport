@@ -2,8 +2,8 @@
 
 -export([start_link/5]).
 -export([init/5]).
--export([call/4]).
--export([cast/4]).
+-export([call/5]).
+-export([cast/5]).
 -export([load/3]).
 
 -define(ATOMS, [true, false, undefined]).
@@ -39,15 +39,15 @@ init(PortRef, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pi
   {TRefs, {ok, []}} = portloop(PortRef, Port, M, Pipe, #{}, Timeout),
   mainloop(PortRef, Port, M, Pipe, TRefs).
 
-call(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
+call(PortRef, F, A, Pipe, Timeout) when is_atom(F), is_list(A), is_list(Pipe) ->
   Ref = make_ref(),
-  send(PortRef, {call, F, A, Timeout, self(), Ref}),
+  send(PortRef, {call, F, A, Pipe, Timeout, self(), Ref}),
   receive
     {Ref, Result} -> Result
   end.
 
-cast(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
-  send(PortRef, {cast, F, A, Timeout}),
+cast(PortRef, F, A, Pipe, Timeout) when is_atom(F), is_list(A), is_list(Pipe) ->
+  send(PortRef, {cast, F, A, Pipe, Timeout}),
   ok.
 
 load(PortRef, Binary, Timeout) when is_binary(Binary) ->
@@ -59,14 +59,14 @@ load(PortRef, Binary, Timeout) when is_binary(Binary) ->
 
 mainloop(PortRef, Port, M, Pipe, TRefs) ->
   receive
-    {call, F, A, Timeout, From, Ref} ->
+    {call, F, A, Pipe2, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout),
       From ! {Ref, Result},
       mainloop(PortRef, Port, M, Pipe, NewTRefs);
-    {cast, F, A, Timeout} ->
+    {cast, F, A, Pipe2, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
+      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout),
       mainloop(PortRef, Port, M, Pipe, NewTRefs);
     {load, Binary, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary(Binary)}},

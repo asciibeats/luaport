@@ -34,6 +34,7 @@ case1(_Config) ->
   PortRef2 = {local, moin},
   {ok, _Pid2} = luaport:spawn(PortRef2, Path, ?MODULE, [thing]),
   {ok, [15]} = luaport:call(PortRef2, call, [<<"multiply">>, 3, 5]),
+  {ok, [15]} = luaport:call(PortRef2, call, [<<"multiply">>], [3, 5]),
   ok = luaport:despawn(PortRef2),
   PortRef3 = {global, sven},
   {ok, _Pid3} = luaport:spawn(PortRef3, Path, ?MODULE),
