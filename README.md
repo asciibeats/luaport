@@ -21,7 +21,7 @@ rebar3 ct
 I presume you use [rebar3](https://www.rebar3.org). Just add LuaPort as dependency to your rebar.config.
 ```erlang
 {deps, [
-  {luaport, {git, "https://github.com/asciibeats/luaport.git", {tag, "v1.0.0"}}}
+  {luaport, {git, "https://github.com/asciibeats/luaport.git", {tag, "v1.1.0"}}}
 ]}.
 ```
 Create a lua script at path/to/scripts called main.lua.

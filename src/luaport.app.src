@@ -1,6 +1,6 @@
 {application, luaport, [
   {description, "An erlang port for scripting application logic in lua"},
-  {vsn, "1.0.0"},
+  {vsn, "1.1.0"},
   {modules, [luaport, luaport_app, luaport_sup, luaport_server]},
   {registered, [luaport_sup]},
   {mod, {luaport_app, []}},
