@@ -43,7 +43,7 @@ Ports can also be spawned with a callback module to be able to call or cast erla
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [one, "another"]),
 luaport:cast(Pid, execute).
 ```
-The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle.
+The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle. The print function in this example is a custom function mimicking Lua's own print function. It shows its output in the erlang shell, is able to print tables in depth and can take a variable number of arguments.
 ```lua
 local state, number = luaport.call.init('sunshine', 49)
 
