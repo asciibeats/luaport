@@ -7,5 +7,6 @@
   {applications, [kernel, stdlib]},
   {env, []},
   {licenses, ["MIT"]},
-  {links, [{"Github", "https://github.com/asciibeats/luaport"}]}
+  {links, [{"Github", "https://github.com/asciibeats/luaport"}]},
+  {exclude_files, ["priv/luaport"]}
 ]}.
