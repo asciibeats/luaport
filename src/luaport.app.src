@@ -5,5 +5,7 @@
   {registered, [luaport_sup]},
   {mod, {luaport_app, []}},
   {applications, [kernel, stdlib]},
-  {env, []}
+  {env, []},
+  {licenses, ["MIT"]},
+  {links, [{"Github", "https://github.com/asciibeats/luaport"}]}
 ]}.
