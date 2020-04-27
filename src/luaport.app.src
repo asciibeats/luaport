@@ -8,5 +8,6 @@
   {env, []},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/asciibeats/luaport"}]},
+  {include_files, ["Makefile", "test/luaport_SUITE.erl"]},
   {exclude_files, ["priv/luaport"]}
 ]}.
