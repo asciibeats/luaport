@@ -1115,7 +1115,6 @@ int main(int argc, char *argv[])
   }
 
   write_term(&eb);
-  //luap_printf(&eb, "top: %i", lua_gettop(L));
 
   while (read_term(buf, &index) > 0)
   {
@@ -1197,4 +1196,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-
