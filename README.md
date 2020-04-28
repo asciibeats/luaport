@@ -112,17 +112,17 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - For convenience, all other atoms become strings. They will be handled like any other string on the way back.
 
 #### Translations
-| Erlang | Lua | Notes |
-| --- | --- | --- |
-| 23 | 23 | |
-| "abc" | {97, 98, 99} | erlang strings are lists |
-| <<"abc">> | 'abc' | |
-| \[1, 2] | {1, 2} | has metatype 'list' |
-| {3, 4} | {3, 4} | has metatype 'tuple' |
-| #{5 => 6} | {\[5] = 6} | has no metatype |
-| true | true | |
-| false | false | |
-| undefined | nil | |
+| Erlang | Elixir | Lua | Notes |
+| --- | --- | --- | --- |
+| 23 | 23 | 23 | |
+| "abc" | 'abc' | {97, 98, 99} | erlang strings are lists |
+| <<"abc">> | "abc" | 'abc' | |
+| \[1, 2] | \[1, 2] | {1, 2} | has metatype 'list' |
+| {3, 4} | {3, 4} | {3, 4} | has metatype 'tuple' |
+| #{5 => 6} | %{5 => 6} | {\[5] = 6} | has no metatype |
+| true | true | true | |
+| false | false | false | |
+| undefined | undefined | nil | |
 
 #### Helpers
 | Function | Description |
