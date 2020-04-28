@@ -21,14 +21,14 @@ rebar3 ct
 If you use erlang and [rebar3](https://www.rebar3.org), add LuaPort as dependency to your `rebar.config`.
 ```erlang
 {deps, [
-  {luaport, {git, "https://github.com/asciibeats/luaport.git", {tag, "v1.1.0"}}}
+  {luaport, {git, "https://github.com/asciibeats/luaport.git", {tag, "v1.2.0"}}}
 ]}.
 ```
 Or for elixir and mix, add it to your `mix.exs`.
 ```elixir
 defp deps do
   [
-    {:luaport, "~> 1.1"}
+    {:luaport, "~> 1.2"}
   ]
 end
 ```
@@ -104,7 +104,7 @@ port.cancel(ref)
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
-- LuaPort uses LuaJIT and has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L49-L57) get converted on their way to erlang. You can modify this behaviour with `LUAP_USEINT` on compilation.
+- LuaPort uses LuaJIT and has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L49-L55) get converted on their way to erlang. You can modify this behaviour by defining `LUAP_NOINT` on compilation.
 - Lua has only one collection type, the table. It is like a map in erlang. So when maps get translated to lua they become tables. 
 - When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
