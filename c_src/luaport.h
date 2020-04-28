@@ -31,7 +31,7 @@
 
 #include "lua.h"
 
-#define LUA_PORTLIBNAME  "port"
+#define LUA_PORTLIBNAME "port"
 LUALIB_API int luaopen_port(lua_State *L);
 
 #endif
