@@ -17,8 +17,8 @@
 #include <ei.h>
 #include "luaport.h"
 
-#ifndef LUAP_BUFFER
-  #define LUAP_BUFFER 2048
+#ifndef LUAP_BUFLEN
+  #define LUAP_BUFLEN 2048
 #endif
 
 #define LUAP_PACKET 4
@@ -147,7 +147,7 @@ static int read_term(char *buf, int *index)
 
   size_t len = read4((unsigned char *)buf);
 
-  if (len > LUAP_BUFFER)
+  if (len > LUAP_BUFLEN)
   {
     exit(EXIT_FAIL_SIZE);
   }
@@ -314,28 +314,28 @@ static int e2l_binary(const char *buf, int *index, lua_State *L)
 
 static int e2l_atom(const char *buf, int *index, lua_State *L)
 {
-  char a[MAXATOMLEN];
+  char atom[MAXATOMLEN];
 
-  if (ei_decode_atom(buf, index, a))
+  if (ei_decode_atom(buf, index, atom))
   {
     return -1;
   }
 
-  if (!strcmp(a, "true"))
+  if (!strcmp(atom, "true"))
   {
     lua_pushboolean(L, 1);
   }
-  else if (!strcmp(a, "false"))
+  else if (!strcmp(atom, "false"))
   {
     lua_pushboolean(L, 0);
   }
-  else if (!strcmp(a, "nil"))
+  else if (!strcmp(atom, "nil"))
   {
     lua_pushnil(L);
   }
   else
   {
-    lua_pushstring(L, a);
+    lua_pushstring(L, atom);
   }
 
   return 0;
@@ -996,7 +996,7 @@ static const luaL_Reg port_funcs[] = {
 LUALIB_API int luaopen_port(lua_State *L)
 {
   ei_x_new(lua_newuserdata(L, sizeof(ei_x_buff)));
-  lua_newuserdata(L, LUAP_BUFFER);
+  lua_newuserdata(L, LUAP_BUFLEN);
   lua_newuserdata(L, sizeof(int));
 
   luaL_register(L, LUA_PORTLIBNAME, port_funcs);
@@ -1098,7 +1098,7 @@ int main(int argc, char *argv[])
   char func[MAXATOMLEN];
   int nargs;
 
-  char buf[LUAP_BUFFER];
+  char buf[LUAP_BUFLEN];
   int index;
   ei_x_buff eb;
   ei_x_new(&eb);
