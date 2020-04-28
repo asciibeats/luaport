@@ -568,7 +568,7 @@ static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_long(eb, i);
 }
 
-#ifndef LUAP_NOINT
+#if LUAP_USEINT
 static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
@@ -1040,23 +1040,31 @@ LUALIB_API int luaopen_port(lua_State *L)
   return 1;
 }
 
-static const luaL_Reg lj_lib_load[] = {
+static const luaL_Reg luap_lib_load[] = {
   {"", luaopen_base},
   {LUA_LOADLIBNAME, luaopen_package},
   {LUA_TABLIBNAME, luaopen_table},
-  //{LUA_IOLIBNAME, luaopen_io},
-  //{LUA_OSLIBNAME, luaopen_os},
   {LUA_STRLIBNAME, luaopen_string},
   {LUA_MATHLIBNAME, luaopen_math},
-  //{LUA_DBLIBNAME, luaopen_debug},
-  {LUA_BITLIBNAME, luaopen_bit},
   {LUA_JITLIBNAME, luaopen_jit},
   {LUA_PORTLIBNAME, luaopen_port},
+#if LUAP_HASIO
+  {LUA_IOLIBNAME, luaopen_io},
+#endif
+#if LUAP_HASOS
+  {LUA_OSLIBNAME, luaopen_os},
+#endif
+#if LUAP_HASDEBUG
+  {LUA_DBLIBNAME, luaopen_debug},
+#endif
+#if LUAP_HASBIT
+  {LUA_BITLIBNAME, luaopen_bit},
+#endif
   {NULL, NULL}
 };
 
-static const luaL_Reg lj_lib_preload[] = {
-#if LJ_HASFFI
+static const luaL_Reg luap_lib_preload[] = {
+#if LUAP_HASFFI
   {LUA_FFILIBNAME, luaopen_ffi},
 #endif
   {NULL, NULL}
@@ -1066,16 +1074,16 @@ LUALIB_API void luaL_openlibs(lua_State *L)
 {
   const luaL_Reg *lib;
 
-  for (lib = lj_lib_load; lib->func; lib++)
+  for (lib = luap_lib_load; lib->func; lib++)
   {
     lua_pushcfunction(L, lib->func);
     lua_pushstring(L, lib->name);
     lua_call(L, 1, 0);
   }
 
-  luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
+  luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", sizeof(luap_lib_preload) / sizeof(luap_lib_preload[0]) - 1);
 
-  for (lib = lj_lib_preload; lib->func; lib++)
+  for (lib = luap_lib_preload; lib->func; lib++)
   {
     lua_pushcfunction(L, lib->func);
     lua_setfield(L, -2, lib->name);

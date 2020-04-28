@@ -5,19 +5,22 @@ ERTS_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts/ert
 ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, include)]).")
 ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, lib)]).")
 
-LUAP_BUFFER ?= 2048
-LUAP_NOINT ?= 1
-
 DEFINES := -D_REENTRANT=PTHREADS
 DEFINES += -D_GNU_SOURCE
-DEFINES += -DLUAP_BUFFER=$(LUAP_BUFFER)
-#DEFINES += -DLUAP_NOINT=$(LUAP_NOINT)
-#DEFINES += -DLUA_USE_APICHECK
+DEFINES += -DLUA_USE_APICHECK
+DEFINES += -DLUAP_BUFFER=2048
+DEFINES += -DLUAP_USEINT
+#DEFINES += -DLUAP_HASIO
+#DEFINES += -DLUAP_HASOS
+#DEFINES += -DLUAP_HASDEBUG
+#DEFINES += -DLUAP_HASBIT
+#DEFINES += -DLUAP_HASFFI
 
-CFLAGS := -Ic_src $(LUA_CFLAGS) -I$(ERTS_INCLUDE_DIR) -I$(ERL_INTERFACE_INCLUDE_DIR) $(DEFINES)
+CFLAGS := -Ic_src $(LUA_CFLAGS) -I$(ERTS_INCLUDE_DIR) -I$(ERL_INTERFACE_INCLUDE_DIR)
 CFLAGS += -O3 -fPIC
 #CFLAGS += -Og -ggdb
 CFLAGS += -Wall -Werror -Wno-unused-function -fmax-errors=1
+CFLAGS += $(DEFINES)
 LDFLAGS := -lpthread $(LUA_LDFLAGS) -L$(ERL_INTERFACE_LIB_DIR) -lerl_interface -lei
 
 SOURCES=$(wildcard c_src/*.c)
