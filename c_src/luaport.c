@@ -47,11 +47,11 @@
 #define EXIT_PRINT_BUF 232
 
 #if defined(LUA_NUMBER_FLOAT)
-  #define luap_isinteger(n) (fabsf(rintf(n) - n) <= FLT_EPSILON)
+  #define luap_isinteger(n) (fabsf(rintf(n) - n) < FLT_EPSILON)
 #elif defined(LUA_NUMBER_DOUBLE)
-  #define luap_isinteger(n) (fabs(rint(n) - n) <= DBL_EPSILON)
+  #define luap_isinteger(n) (fabs(rint(n) - n) < DBL_EPSILON)
 #elif defined(LUA_NUMBER_LONGDOUBLE)
-  #define luap_isinteger(n) (fabsl(rintl(n) - n) <= LDBL_EPSILON)
+  #define luap_isinteger(n) (fabsl(rintl(n) - n) < LDBL_EPSILON)
 #endif
 
 //from https://www.lua.org/source/5.1/lauxlib.c.html
