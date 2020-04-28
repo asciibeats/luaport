@@ -104,6 +104,7 @@ port.cancel(ref)
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
+- LuaPort uses LuaJIT and has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L49-L57) get converted on their way to erlang. You can modify this behaviour with `LUAP_USEINT` on compilation.
 - Lua has only one collection type, the table. It is like a map in erlang. So when maps get translated to lua they become tables. 
 - When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
@@ -114,7 +115,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 #### Translations
 | Erlang | Elixir | Lua | Notes |
 | --- | --- | --- | --- |
-| 23 | 23 | 23 | |
+| 23 | 23 | 23.0 | |
 | "abc" | 'abc' | {97, 98, 99} | erlang strings are lists |
 | <<"abc">> | "abc" | 'abc' | |
 | \[1, 2] | \[1, 2] | {1, 2} | has metatype 'list' |
