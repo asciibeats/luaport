@@ -18,19 +18,27 @@ rebar3 ct
 ```
 
 ## Use
-I presume you use [rebar3](https://www.rebar3.org). Just add LuaPort as dependency to your rebar.config.
+If you use erlang and [rebar3](https://www.rebar3.org), add LuaPort as dependency to your `rebar.config`.
 ```erlang
 {deps, [
   {luaport, {git, "https://github.com/asciibeats/luaport.git", {tag, "v1.1.0"}}}
 ]}.
 ```
-Create a lua script at path/to/scripts called main.lua.
+Or for elixir and mix, add it to your `mix.exs`.
+```elixir
+defp deps do
+  [
+    {:luaport, "~> 1.1"}
+  ]
+end
+```
+Create a lua script at path/to/scripts called `main.lua`.
 ```lua
 function subtract(a, b)
   return a - b
 end
 ```
-Don't forget to start the application before you use it.
+When using erlang, don't forget to start the application.
 ```erlang
 application:start(luaport),
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts"),
@@ -38,14 +46,20 @@ application:start(luaport),
 luaport:despawn(myid),
 application:stop(luaport).
 ```
-Ports can also be spawned with a callback module to be able to call or cast erlang functions from lua context. The fourth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
+Elixir will start it automatically.
+```elixir
+{:ok, pid} = :luaport.spawn(:myid, 'path/to/scripts')
+{:ok, results} = :luaport.call(pid, :subtract, [43, 1])
+:luaport.despawn(:myid)
+```
+Ports can be spawned with a callback module to be able to call or cast erlang functions from lua context. The fourth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
 ```erlang
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts", callback, [one, "another"]),
 luaport:cast(Pid, execute).
 ```
 The main script gets interpreted on every spawn or respawn. You could load some state into persistent memory for use throughout the port's lifecycle. The print function in this example is a custom function mimicking Lua's own print function. It shows its output in the erlang shell, is able to print tables in depth and can take a variable number of arguments.
 ```lua
-local state, number = luaport.call.init('sunshine', 49)
+local state, number = port.call.init('sunshine', 49)
 
 function execute()
   print(state, number)
@@ -80,11 +94,11 @@ local module = require('module')
 ```
 Lua has no delayed call mechanism, therefore LuaPort provides an interface to erlangs timer functions. The number is the time to wait in milliseconds.
 ```lua
-luaport.after(3000, function (str) print(str) end, 'call once, if not canceled')
+port.after(3000, function (str) print(str) end, 'call once, if not canceled')
 ```
 ```lua
-local ref = luaport.interval(1000, function (str) print(str) end, 'call repeatedly until canceled')
-luaport.cancel(ref)
+local ref = port.interval(1000, function (str) print(str) end, 'call repeatedly until canceled')
+port.cancel(ref)
 ```
 
 ## Quirks
@@ -113,12 +127,12 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 #### Helpers
 | Function | Description |
 | --- | --- |
-| luaport.aslist(t) | set metatype 'list' |
-| luaport.astuple(t) | set metatype 'tuple' |
-| luaport.asmap(t) | unset metatype |
-| luaport.islist(v) | if metatype 'list' |
-| luaport.istuple(v) | if metatype 'tuple' |
-| luaport.ismap(v) | if no metatype |
+| port.aslist(t) | set metatype 'list' |
+| port.astuple(t) | set metatype 'tuple' |
+| port.asmap(t) | unset metatype |
+| port.islist(v) | if metatype 'list' |
+| port.istuple(v) | if metatype 'tuple' |
+| port.ismap(v) | if no metatype |
 
 ## Help
 It is very much appreciated. What i could use help with:
