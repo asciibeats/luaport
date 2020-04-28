@@ -1,18 +1,27 @@
+/*
+** Copyright (C) 2019-2020 Tilman M. Jaeschke. See Copyright Notice in luaport.h
+** Copyright (C) 2005-2020 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
+*/
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
+#include <float.h>
 #include <lua.h>
-#include <lualib.h>
 #include <lauxlib.h>
+#include <lualib.h>
+#include <luajit.h>
 #include <ei.h>
+#include "luaport.h"
 
 #ifndef LUAP_BUFFER
   #define LUAP_BUFFER 2048
 #endif
 
 #define LUAP_PACKET 4
-#define LUAP_LIBNAME "luaport"
 #define LUAP_MTYPE "_mtype"
 #define LUAP_TMAP 0
 #define LUAP_TTUPLE 1
@@ -21,6 +30,7 @@
 #define EXIT_FAIL_READ 200
 #define EXIT_FAIL_WRITE 201
 #define EXIT_FAIL_SIZE 202
+#define EXIT_FAIL_JIT 203
 #define EXIT_BAD_VERSION 210
 #define EXIT_BAD_TUPLE 211
 #define EXIT_BAD_ATOM 212
@@ -32,6 +42,37 @@
 #define EXIT_CALL_READ 220
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
+#define EXIT_PRINT_LEN 230
+#define EXIT_PRINT_MALLOC 231
+#define EXIT_PRINT_BUF 232
+
+#if defined(LUA_NUMBER_FLOAT)
+  #define luap_isinteger(n) (fabsf(rintf(n) - n) <= FLT_EPSILON)
+#elif defined(LUA_NUMBER_DOUBLE)
+  #define luap_isinteger(n) (fabs(rint(n) - n) <= DBL_EPSILON)
+#elif defined(LUA_NUMBER_LONGDOUBLE)
+  #define luap_isinteger(n) (fabsl(rintl(n) - n) <= LDBL_EPSILON)
+#else
+  #error missing implementation
+#endif
+
+//from https://www.lua.org/source/5.1/lauxlib.c.html
+#define abs_index(L, i) ((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : lua_gettop(L) + (i) + 1)
+
+//from https://www.lua.org/source/5.1/luaconf.h.html
+#if defined(LUA_NUMBER_DOUBLE) && !defined(LUA_ANSI) && !defined(__SSE2__) && (defined(__i386) || defined (_M_IX86) || defined(__i386__))
+  #if defined(_MSC_VER)
+    #define lua_number2int(i,d) __asm fld d __asm fistp i
+    #define lua_number2integer(i,n) lua_number2int(i, n)
+  #else
+    union luai_Cast { double l_d; long l_l; };
+    #define lua_number2int(i,d) { volatile union luai_Cast u; u.l_d = (d) + 6755399441055744.0; (i) = u.l_l; }
+    #define lua_number2integer(i,n) lua_number2int(i, n)
+  #endif
+#else
+  #define lua_number2int(i,d)     ((i)=(int)(d))
+  #define lua_number2integer(i,d) ((i)=(lua_Integer)(d))
+#endif
 
 static size_t read4(const unsigned char *buf)
 {
@@ -131,6 +172,48 @@ static int write_term(ei_x_buff *eb)
   return len;
 }
 
+static void luap_printf(ei_x_buff *eb, const char *format, ...)
+{
+  int len = 0;
+  char *buf = NULL;
+  va_list ap;
+
+  va_start(ap, format);
+  len = vsnprintf(buf, len, format, ap);
+  va_end(ap);
+
+  if (len < 0)
+  {
+    exit(EXIT_PRINT_LEN);
+  }
+
+  len++;
+  buf = malloc(len);
+
+  if (buf == NULL)
+  {
+    exit(EXIT_PRINT_MALLOC);
+  }
+
+  va_start(ap, format);
+  len = vsnprintf(buf, len, format, ap);
+  va_end(ap);
+
+  if (len < 0)
+  {
+    free(buf);
+    exit(EXIT_PRINT_BUF);
+  }
+
+  ei_x_encode_version(eb);
+  ei_x_encode_tuple_header(eb, 2);
+  ei_x_encode_atom(eb, "info");
+  ei_x_encode_string_len(eb, buf, len);
+
+  write_term(eb);
+  free(buf);
+}
+
 static void luap_setmetatype(lua_State *L, int index, int type)
 {
   if (type == LUAP_TMAP)
@@ -145,7 +228,7 @@ static void luap_setmetatype(lua_State *L, int index, int type)
   }
   else
   {
-    index = lua_absindex(L, index);
+    index = abs_index(L, index);
 
     if (!lua_getmetatable(L, index))
     {
@@ -169,14 +252,15 @@ static int luap_hasmetatype(lua_State *L, int index, int type)
   if (lua_getmetatable(L, index))
   {
     lua_pushstring(L, LUAP_MTYPE);
+    lua_rawget(L, -2);
 
-    if (lua_rawget(L, -2) != LUA_TNIL)
+    if (lua_isnil(L, -1))
     {
-      return type == (int)lua_tointeger(L, -1);
+      return type == LUAP_TMAP;
     }
     else
     {
-      return type == LUAP_TMAP;
+      return type == (int)lua_tointeger(L, -1);
     }
   }
   else
@@ -464,7 +548,7 @@ static int e2l_call(const char *buf, int *index, lua_State *L, int *nargs)
   }
 
   int top = lua_gettop(L);
-  *nargs = (int)luaL_len(L, top);
+  *nargs = (int)lua_objlen(L, top);
 
   for (int i = 1; i <= *nargs; i++)
   {
@@ -484,11 +568,29 @@ static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_long(eb, i);
 }
 
+#ifndef LUAP_NOINT
+static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
+{
+  lua_Number n = lua_tonumber(L, index);
+
+  if (luap_isinteger(n))
+  {
+    lua_Integer i;
+    lua_number2integer(i, n);
+    ei_x_encode_long(eb, i);
+  }
+  else
+  {
+    ei_x_encode_double(eb, n);
+  }
+}
+#else
 static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
   ei_x_encode_double(eb, n);
 }
+#endif
 
 static void l2e_string_string(lua_State *L, int index, ei_x_buff *eb)
 {
@@ -511,7 +613,7 @@ static void l2e_string_atom(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_table_list(lua_State *L, int index, ei_x_buff *eb)
 {
-  int arity = (int)luaL_len(L, index);
+  int arity = (int)lua_objlen(L, index);
 
   if (arity > 0)
   {
@@ -530,7 +632,7 @@ static void l2e_table_list(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_table_tuple(lua_State *L, int index, ei_x_buff *eb)
 {
-  int arity = (int)luaL_len(L, index);
+  int arity = (int)lua_objlen(L, index);
   ei_x_encode_tuple_header(eb, arity);
 
   for (int i = 1; i <= arity; i++)
@@ -543,7 +645,7 @@ static void l2e_table_tuple(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
 {
-  index = lua_absindex(L, index);
+  index = abs_index(L, index);
   int eb_index = eb->index + 1;
 
   char b[5];
@@ -566,7 +668,9 @@ static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
 {
-  if (luaL_getmetafield(L, index, LUAP_MTYPE) == LUA_TNUMBER)
+  luaL_getmetafield(L, index, LUAP_MTYPE);
+
+  if (lua_isnumber(L, -1))
   {
     int mtype = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
@@ -607,14 +711,7 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
   switch (lua_type(L, index))
   {
     case LUA_TNUMBER:
-      if (lua_isinteger(L, index))
-      {
-        l2e_integer(L, index, eb);
-      }
-      else
-      {
-        l2e_number(L, index, eb);
-      }
+      l2e_number(L, index, eb);
       break;
     case LUA_TSTRING:
       l2e_string_binary(L, index, eb);
@@ -702,7 +799,7 @@ static void l2e_pcall(lua_State *L, int nargs, ei_x_buff *eb)
   }
 }
 
-static int luaport_call(lua_State *L)
+static int port_call(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
   char *buf = lua_touserdata(L, lua_upvalueindex(3));
@@ -739,16 +836,16 @@ static int luaport_call(lua_State *L)
   return nargs;
 }
 
-static int luaport_call_index(lua_State *L)
+static int port_call_index(lua_State *L)
 {
   lua_pushvalue(L, lua_upvalueindex(1));
   lua_pushvalue(L, lua_upvalueindex(2));
   lua_pushvalue(L, lua_upvalueindex(3));
-  lua_pushcclosure(L, &luaport_call, 4);
+  lua_pushcclosure(L, &port_call, 4);
   return 1;
 }
 
-static int luaport_cast(lua_State *L)
+static int port_cast(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(2));
 
@@ -763,14 +860,14 @@ static int luaport_cast(lua_State *L)
   return 0;
 }
 
-static int luaport_cast_index(lua_State *L)
+static int port_cast_index(lua_State *L)
 {
   lua_pushvalue(L, lua_upvalueindex(1));
-  lua_pushcclosure(L, &luaport_cast, 2);
+  lua_pushcclosure(L, &port_cast, 2);
   return 1;
 }
 
-static int luaport_after(lua_State *L)
+static int port_after(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -785,7 +882,7 @@ static int luaport_after(lua_State *L)
   return 1;
 }
 
-static int luaport_interval(lua_State *L)
+static int port_interval(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -800,11 +897,12 @@ static int luaport_interval(lua_State *L)
   return 1;
 }
 
-static int luaport_cancel(lua_State *L)
+static int port_cancel(lua_State *L)
 {
   lua_Integer ref = luaL_checkinteger(L, 1);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
 
-  if (lua_rawgeti(L, LUA_REGISTRYINDEX, ref) == LUA_TTABLE)
+  if (lua_istable(L, -1))
   {
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
     ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
@@ -820,7 +918,7 @@ static int luaport_cancel(lua_State *L)
   return 0;
 }
 
-static int luaport_print(lua_State *L)
+static int port_print(lua_State *L)
 {
   ei_x_buff *eb = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -834,7 +932,7 @@ static int luaport_print(lua_State *L)
   return 0;
 }
 
-static int luaport_sleep(lua_State *L)
+static int port_sleep(lua_State *L)
 {
   unsigned long t = (unsigned long)luaL_checkinteger(L, 1);
 
@@ -847,70 +945,70 @@ static int luaport_sleep(lua_State *L)
   return 0;
 }
 
-static int luaport_aslist(lua_State *L)
+static int port_aslist(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
   luap_setmetatype(L, 1, LUAP_TLIST);
   return 1;
 }
 
-static int luaport_astuple(lua_State *L)
+static int port_astuple(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
   luap_setmetatype(L, 1, LUAP_TTUPLE);
   return 1;
 }
 
-static int luaport_asmap(lua_State *L)
+static int port_asmap(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
   luap_setmetatype(L, 1, LUAP_TMAP);
   return 1;
 }
 
-static int luaport_islist(lua_State *L)
+static int port_islist(lua_State *L)
 {
   lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TLIST));
   return 1;
 }
 
-static int luaport_istuple(lua_State *L)
+static int port_istuple(lua_State *L)
 {
   lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TTUPLE));
   return 1;
 }
 
-static int luaport_ismap(lua_State *L)
+static int port_ismap(lua_State *L)
 {
   lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TMAP));
   return 1;
 }
 
-static const struct luaL_Reg luaport_func[] = {
-  {"sleep", luaport_sleep},
-  {"aslist", luaport_aslist},
-  {"astuple", luaport_astuple},
-  {"asmap", luaport_asmap},
-  {"islist", luaport_islist},
-  {"istuple", luaport_istuple},
-  {"ismap", luaport_ismap},
+static const luaL_Reg port_funcs[] = {
+  {"sleep", port_sleep},
+  {"aslist", port_aslist},
+  {"astuple", port_astuple},
+  {"asmap", port_asmap},
+  {"islist", port_islist},
+  {"istuple", port_istuple},
+  {"ismap", port_ismap},
   {NULL, NULL}
 };
 
-static int luaopen_luaport(lua_State *L)
+LUALIB_API int luaopen_port(lua_State *L)
 {
   ei_x_new(lua_newuserdata(L, sizeof(ei_x_buff)));
   lua_newuserdata(L, LUAP_BUFFER);
   lua_newuserdata(L, sizeof(int));
 
-  luaL_newlib(L, luaport_func);
+  luaL_register(L, LUA_PORTLIBNAME, port_funcs);
 
   lua_newtable(L);
   lua_createtable(L, 0, 1);
   lua_pushvalue(L, 2);
   lua_pushvalue(L, 3);
   lua_pushvalue(L, 4);
-  lua_pushcclosure(L, luaport_call_index, 3);
+  lua_pushcclosure(L, port_call_index, 3);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "call");
@@ -918,28 +1016,72 @@ static int luaopen_luaport(lua_State *L)
   lua_newtable(L);
   lua_createtable(L, 0, 1);
   lua_pushvalue(L, 2);
-  lua_pushcclosure(L, luaport_cast_index, 1);
+  lua_pushcclosure(L, port_cast_index, 1);
   lua_setfield(L, -2, "__index");
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "cast");
 
   lua_pushvalue(L, 2);
-  lua_pushcclosure(L, luaport_after, 1);
+  lua_pushcclosure(L, port_after, 1);
   lua_setfield(L, -2, "after");
 
   lua_pushvalue(L, 2);
-  lua_pushcclosure(L, luaport_interval, 1);
+  lua_pushcclosure(L, port_interval, 1);
   lua_setfield(L, -2, "interval");
 
   lua_pushvalue(L, 2);
-  lua_pushcclosure(L, luaport_cancel, 1);
+  lua_pushcclosure(L, port_cancel, 1);
   lua_setfield(L, -2, "cancel");
 
   lua_pushvalue(L, 2);
-  lua_pushcclosure(L, luaport_print, 1);
+  lua_pushcclosure(L, port_print, 1);
   lua_setglobal(L, "print");
 
   return 1;
+}
+
+static const luaL_Reg lj_lib_load[] = {
+  {"", luaopen_base},
+  {LUA_LOADLIBNAME, luaopen_package},
+  {LUA_TABLIBNAME, luaopen_table},
+  //{LUA_IOLIBNAME, luaopen_io},
+  //{LUA_OSLIBNAME, luaopen_os},
+  {LUA_STRLIBNAME, luaopen_string},
+  {LUA_MATHLIBNAME, luaopen_math},
+  //{LUA_DBLIBNAME, luaopen_debug},
+  {LUA_BITLIBNAME, luaopen_bit},
+  {LUA_JITLIBNAME, luaopen_jit},
+  {LUA_PORTLIBNAME, luaopen_port},
+  {NULL, NULL}
+};
+
+static const luaL_Reg lj_lib_preload[] = {
+#if LJ_HASFFI
+  {LUA_FFILIBNAME, luaopen_ffi},
+#endif
+  {NULL, NULL}
+};
+
+LUALIB_API void luaL_openlibs(lua_State *L)
+{
+  const luaL_Reg *lib;
+
+  for (lib = lj_lib_load; lib->func; lib++)
+  {
+    lua_pushcfunction(L, lib->func);
+    lua_pushstring(L, lib->name);
+    lua_call(L, 1, 0);
+  }
+
+  luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", sizeof(lj_lib_preload) / sizeof(lj_lib_preload[0]) - 1);
+
+  for (lib = lj_lib_preload; lib->func; lib++)
+  {
+    lua_pushcfunction(L, lib->func);
+    lua_setfield(L, -2, lib->name);
+  }
+
+  lua_pop(L, 1);
 }
 
 int main(int argc, char *argv[])
@@ -956,15 +1098,12 @@ int main(int argc, char *argv[])
   ei_x_new(&eb);
 
   lua_State *L = luaL_newstate();
-  luaL_requiref(L, "_G", luaopen_base, 1);
-  luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
-  luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
-  luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 1);
-  //luaL_requiref(L, LUA_OSLIBNAME, luaopen_os, 1);
-  luaL_requiref(L, LUA_DBLIBNAME, luaopen_debug, 1);
-  luaL_requiref(L, LUA_LOADLIBNAME, luaopen_package, 1);
-  luaL_requiref(L, LUAP_LIBNAME, luaopen_luaport, 1);
-  lua_settop(L, 0);
+  luaL_openlibs(L);
+
+  if (!luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_ON))
+  {
+    exit(EXIT_FAIL_JIT);
+  }
 
   if (luaL_dofile(L, "main.lua"))
   {
@@ -976,7 +1115,7 @@ int main(int argc, char *argv[])
   }
 
   write_term(&eb);
-  lua_settop(L, 0);
+  //luap_printf(&eb, "top: %i", lua_gettop(L));
 
   while (read_term(buf, &index) > 0)
   {
@@ -999,7 +1138,9 @@ int main(int argc, char *argv[])
         exit(EXIT_BAD_ATOM);
       }
 
-      if (lua_getglobal(L, func) != LUA_TFUNCTION)
+      lua_getglobal(L, func);
+
+      if (!lua_isfunction(L, -1))
       {
         exit(EXIT_BAD_FUNC);
       }
@@ -1056,3 +1197,4 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+

@@ -1,4 +1,4 @@
-local some, values = luaport.call.init('sunshine')
+local some, values = port.call.init('sunshine')
 
 print('hello', some, values)
 
@@ -8,22 +8,22 @@ function echo(...)
 end
 
 function call(name, ...)
-  return luaport.call[name](...)
+  return port.call[name](...)
 end
 
 function cast(name, ...)
-  luaport.cast[name](...)
+  port.cast[name](...)
 end
 
 function exec(name, ...)
-  return luaport[name](...)
+  return port[name](...)
 end
 
 function after(time, ...)
-  return luaport.after(time, function (s, ...) print(s, ...) end, 'after', ...)
+  return port.after(time, function (s, ...) print(s, ...) end, 'after', ...)
 end
 
 function interval(time, ...)
   local i = 0
-  return luaport.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
+  return port.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
 end

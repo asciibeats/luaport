@@ -15,6 +15,7 @@
   200 => {respawn, fail_read},
   201 => {respawn, fail_write},
   202 => {respawn, fail_size},
+  203 => {respawn, fail_jit},
   210 => {respawn, bad_version},
   211 => {respawn, bad_tuple},
   212 => {respawn, bad_atom},
@@ -25,7 +26,10 @@
   217 => {respawn, bad_command},
   220 => {respawn, call_read},
   221 => {respawn, call_version},
-  222 => {respawn, call_result}}).
+  222 => {respawn, call_result},
+  230 => {respawn, print_len},
+  231 => {respawn, print_malloc},
+  232 => {respawn, print_buf}}).
 
 start_link(PortRef, Path, M, Pipe, Timeout) ->
   Pid = spawn_link(?MODULE, init, [PortRef, Path, M, Pipe, Timeout]),
@@ -108,7 +112,7 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
           tryapply(M, F, [PortRef | Pipe ++ A]),
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {info, List} ->
-          io:format("inf ~p ~p~n", [PortRef, List]),
+          io:format("lua ~p ~p~n", [PortRef, List]),
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {'after', Time, LRef} ->
           {ok, TRef} = timer:send_after(Time, {'after', LRef, Timeout}),
