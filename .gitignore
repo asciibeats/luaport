@@ -1,6 +1,5 @@
 /priv/luaport
 /_build
-rebar.lock
 erl_crash.dump
 *.o
 *.stackdump
