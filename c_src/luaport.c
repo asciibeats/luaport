@@ -52,8 +52,6 @@
   #define luap_isinteger(n) (fabs(rint(n) - n) <= DBL_EPSILON)
 #elif defined(LUA_NUMBER_LONGDOUBLE)
   #define luap_isinteger(n) (fabsl(rintl(n) - n) <= LDBL_EPSILON)
-#else
-  #error missing implementation
 #endif
 
 //from https://www.lua.org/source/5.1/lauxlib.c.html
@@ -568,7 +566,13 @@ static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_long(eb, i);
 }
 
-#if LUAP_USEINT
+#if LUAP_NOINT
+static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
+{
+  lua_Number n = lua_tonumber(L, index);
+  ei_x_encode_double(eb, n);
+}
+#else
 static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
@@ -583,12 +587,6 @@ static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
   {
     ei_x_encode_double(eb, n);
   }
-}
-#else
-static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
-{
-  lua_Number n = lua_tonumber(L, index);
-  ei_x_encode_double(eb, n);
 }
 #endif
 
