@@ -109,7 +109,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
 - Erlang has no boolean type and atoms serve no purpose in lua context. So atom true translates to true and atom false to false.
-- Atom undefined translates to nil.
+- Atom nil translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on the way back.
 
 #### Translations
@@ -123,7 +123,8 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | #{5 => 6} | %{5 => 6} | {\[5] = 6} | has no metatype |
 | true | true | true | |
 | false | false | false | |
-| undefined | undefined | nil | |
+| nil | nil | nil | |
+| atom | :atom | 'atom' | |
 
 #### Helpers
 | Function | Description |

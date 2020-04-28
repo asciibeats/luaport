@@ -329,7 +329,7 @@ static int e2l_atom(const char *buf, int *index, lua_State *L)
   {
     lua_pushboolean(L, 0);
   }
-  else if (!strcmp(a, "undefined"))
+  else if (!strcmp(a, "nil"))
   {
     lua_pushnil(L);
   }
@@ -721,7 +721,7 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
       l2e_boolean(L, index, eb);
       break;
     case LUA_TNIL:
-      ei_x_encode_atom(eb, "undefined");
+      ei_x_encode_atom(eb, "nil");
       break;
     /*case LUA_TUSERDATA:
       l2e_userdata(L, index, eb);
