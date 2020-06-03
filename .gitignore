@@ -1,5 +1,7 @@
 /priv/luaport
 /_build
+/.rebar3
+/ebin
 erl_crash.dump
 *.o
 *.stackdump
