@@ -394,7 +394,8 @@ static int e2l_nil(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-/*static int e2l_tuple(const char *buf, int *index, lua_State *L)
+#ifdef LUAP_TUPLEMAP
+static int e2l_tuple(const char *buf, int *index, lua_State *L)
 {
   int arity;
 
@@ -413,8 +414,8 @@ static int e2l_nil(const char *buf, int *index, lua_State *L)
   }
 
   return 0;
-}*/
-
+}
+#else
 static int e2l_tuple(const char *buf, int *index, lua_State *L)
 {
   int start = *index; 
@@ -429,6 +430,7 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
 
   return 0;
 }
+#endif
 
 static int e2l_map(const char *buf, int *index, lua_State *L)
 {
@@ -581,7 +583,7 @@ static void l2e_integer(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_long(eb, i);
 }
 
-#if LUAP_NOINT
+#ifdef LUAP_NOINT
 static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
@@ -719,12 +721,14 @@ static void l2e_boolean(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_ref(eb, ref);
 }*/
 
+#ifndef LUAP_TUPLEMAP
 static void l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
 {
   const char *buf = lua_touserdata(L, index);
   int len = lua_objlen(L, index);
   ei_x_append_buf(eb, buf, len);
 }
+#endif
 
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 {
@@ -745,9 +749,11 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
     case LUA_TNIL:
       ei_x_encode_atom(eb, "nil");
       break;
+#ifndef LUAP_TUPLEMAP
     case LUA_TUSERDATA:
       l2e_userdata(L, index, eb);
       break;
+#endif
     default:
       luaL_error(L, "unsupported type");
   }
@@ -972,13 +978,6 @@ static int port_aslist(lua_State *L)
   return 1;
 }
 
-/*static int port_astuple(lua_State *L)
-{
-  luaL_checktype(L, 1, LUA_TTABLE);
-  luap_setmetatype(L, 1, LUAP_TTUPLE);
-  return 1;
-}*/
-
 static int port_asmap(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -992,26 +991,37 @@ static int port_islist(lua_State *L)
   return 1;
 }
 
-/*static int port_istuple(lua_State *L)
-{
-  lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TTUPLE));
-  return 1;
-}*/
-
 static int port_ismap(lua_State *L)
 {
   lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TMAP));
   return 1;
 }
 
+#ifdef LUAP_TUPLEMAP
+static int port_istuple(lua_State *L)
+{
+  lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TTUPLE));
+  return 1;
+}
+
+static int port_astuple(lua_State *L)
+{
+  luaL_checktype(L, 1, LUA_TTABLE);
+  luap_setmetatype(L, 1, LUAP_TTUPLE);
+  return 1;
+}
+#endif
+
 static const luaL_Reg port_funcs[] = {
   {"sleep", port_sleep},
   {"aslist", port_aslist},
-  //{"astuple", port_astuple},
   {"asmap", port_asmap},
   {"islist", port_islist},
-  //{"istuple", port_istuple},
   {"ismap", port_ismap},
+#ifdef LUAP_TUPLEMAP
+  {"istuple", port_istuple},
+  {"astuple", port_astuple},
+#endif
   {NULL, NULL}
 };
 
@@ -1068,23 +1078,23 @@ static const luaL_Reg luap_lib_load[] = {
   {LUA_MATHLIBNAME, luaopen_math},
   {LUA_JITLIBNAME, luaopen_jit},
   {LUA_PORTLIBNAME, luaopen_port},
-#if LUAP_HASIO
+#ifdef LUAP_HASIO
   {LUA_IOLIBNAME, luaopen_io},
 #endif
-#if LUAP_HASOS
+#ifdef LUAP_HASOS
   {LUA_OSLIBNAME, luaopen_os},
 #endif
-#if LUAP_HASDEBUG
+#ifdef LUAP_HASDEBUG
   {LUA_DBLIBNAME, luaopen_debug},
 #endif
-#if LUAP_HASBIT
+#ifdef LUAP_HASBIT
   {LUA_BITLIBNAME, luaopen_bit},
 #endif
   {NULL, NULL}
 };
 
 static const luaL_Reg luap_lib_preload[] = {
-#if LUAP_HASFFI
+#ifdef LUAP_HASFFI
   {LUA_FFILIBNAME, luaopen_ffi},
 #endif
   {NULL, NULL}
