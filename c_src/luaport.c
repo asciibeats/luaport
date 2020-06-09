@@ -394,7 +394,7 @@ static int e2l_nil(const char *buf, int *index, lua_State *L)
   return 0;
 }
 
-static int e2l_tuple(const char *buf, int *index, lua_State *L)
+/*static int e2l_tuple(const char *buf, int *index, lua_State *L)
 {
   int arity;
 
@@ -411,6 +411,21 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
     e2l_any(buf, index, L);
     lua_rawseti(L, -2, i);
   }
+
+  return 0;
+}*/
+
+static int e2l_tuple(const char *buf, int *index, lua_State *L)
+{
+  int start = *index; 
+
+  if (ei_skip_term(buf, index))
+  {
+    return -1;
+  }
+
+  int size = *index - start;
+  memcpy(lua_newuserdata(L, size), buf + start, size);
 
   return 0;
 }
@@ -704,6 +719,13 @@ static void l2e_boolean(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_ref(eb, ref);
 }*/
 
+static void l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
+{
+  const char *buf = lua_touserdata(L, index);
+  int len = lua_objlen(L, index);
+  ei_x_append_buf(eb, buf, len);
+}
+
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 {
   switch (lua_type(L, index))
@@ -723,9 +745,9 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
     case LUA_TNIL:
       ei_x_encode_atom(eb, "nil");
       break;
-    /*case LUA_TUSERDATA:
+    case LUA_TUSERDATA:
       l2e_userdata(L, index, eb);
-      break;*/
+      break;
     default:
       luaL_error(L, "unsupported type");
   }
@@ -950,12 +972,12 @@ static int port_aslist(lua_State *L)
   return 1;
 }
 
-static int port_astuple(lua_State *L)
+/*static int port_astuple(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
   luap_setmetatype(L, 1, LUAP_TTUPLE);
   return 1;
-}
+}*/
 
 static int port_asmap(lua_State *L)
 {
@@ -970,11 +992,11 @@ static int port_islist(lua_State *L)
   return 1;
 }
 
-static int port_istuple(lua_State *L)
+/*static int port_istuple(lua_State *L)
 {
   lua_pushboolean(L, luap_hasmetatype(L, 1, LUAP_TTUPLE));
   return 1;
-}
+}*/
 
 static int port_ismap(lua_State *L)
 {
@@ -985,10 +1007,10 @@ static int port_ismap(lua_State *L)
 static const luaL_Reg port_funcs[] = {
   {"sleep", port_sleep},
   {"aslist", port_aslist},
-  {"astuple", port_astuple},
+  //{"astuple", port_astuple},
   {"asmap", port_asmap},
   {"islist", port_islist},
-  {"istuple", port_istuple},
+  //{"istuple", port_istuple},
   {"ismap", port_ismap},
   {NULL, NULL}
 };
