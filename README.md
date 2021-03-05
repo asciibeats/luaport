@@ -1,13 +1,17 @@
 # LuaPort
 *An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua; Can be compiled with lua or luajit*
+
+Use erlang:
 ```erlang
 {ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
 {ok, [6]} = luaport:call(Pid, 'Multiply', [2, 3]).
 ```
+Or elixir:
 ```elixir
 {:ok, pid} = :luaport.spawn(:some_id, 'path/to/scripts')
 {:ok, [6]} = :luaport.call(pid, :Multiply, [2, 3])
 ```
+To execute a lua script:
 ```lua
 function Multiply(a, b)
   return a * b
