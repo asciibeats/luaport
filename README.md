@@ -25,7 +25,7 @@ rebar3 ct
 If you use erlang and [rebar3](https://www.rebar3.org), add LuaPort as dependency to your `rebar.config`.
 ```erlang
 {deps, [
-  {luaport, "1.4.0"}
+  {luaport, "1.4.1"}
 ]}.
 ```
 Or for elixir and mix, add it to your `mix.exs`.
