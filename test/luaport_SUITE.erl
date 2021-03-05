@@ -11,58 +11,86 @@
 -export([print/2]).
 -export([print/3]).
 
-all() -> [case1].
+all() ->
+  [case1].
 
 case1(_Config) ->
   application:start(luaport),
   Path = filename:join([code:priv_dir(luaport), lua]),
   {ok, Pid} = luaport:spawn(banane, Path, ?MODULE),
-  {ok, [[128]]} = luaport:call(Pid, echo, [[128]]),
-  {ok, [-2147483648, 2147483647]} = luaport:call(Pid, echo, [-2147483648, 2147483647]),
+  {ok, []} = luaport:load(Pid, <<"print(_VERSION)">>),
+  {ok, [[128]]} = luaport:call(Pid, 'Echo', [[128]]),
+  {ok, [-2147483648, 2147483647]} = luaport:call(Pid, 'Echo', [-2147483648, 2147483647]),
   {error, "don't panic"} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
-  luaport:cast(Pid, 'after', [300, first]),
-  luaport:cast(Pid, 'after', [100, second]),
-  {ok, [LRef]} = luaport:call(Pid, 'after', [500, third]),
-  luaport:cast(Pid, exec, [cancel, LRef]),
-  luaport:cast(Pid, interval, [200]),
-  %{ok, [[{<<"atom">>, true, false}, "abc"]]} = luaport:call(Pid, echo, [[{atom, true, false, nil}, "abc"]]),
-  {ok, [[{atom, true, false, nil}, "abc"]]} = luaport:call(Pid, echo, [[{atom, true, false, nil}, "abc"]]),
-  {ok, [#{<<"one">> := 1,[2,3.7,4] := #{}}]} = luaport:call(Pid, echo, [#{one => 1, [2,3.7,4] => #{}}]),
-  {ok, [{{2, 3}, {<<"vier">>, 5}}]} = luaport:call(Pid, echo, [{{2, 3}, {<<"vier">>, 5}}]),
-  {ok, [6]} = luaport:call(Pid, call, [<<"multiply">>, 2, 3]),
-  {ok, []} = luaport:call(Pid, call, [<<"undefined">>, 2, 3]),
+  luaport:cast(Pid, 'After', [300, first]),
+  luaport:cast(Pid, 'After', [100, second]),
+  {ok, [LRef]} = luaport:call(Pid, 'After', [500, third]),
+  luaport:cast(Pid, 'Exec', [cancel, LRef]),
+  luaport:cast(Pid, 'Interval', [200]),
+  {ok, [[{<<"atom">>, true, false}, "abc"]]} =
+  %{ok, [[{atom, true, false, nil}, "abc"]]} =
+    luaport:call(Pid, 'Echo', [[{atom, true, false, nil}, "abc"]]),
+  {ok, [#{<<"one">> := 1, [2, 3.70000000000000017764e+00, 4] := #{}}]} =
+    luaport:call(Pid, 'Echo', [#{one => 1, [2, 3.70000000000000017764e+00, 4] => #{}}]),
+  {ok, [{{2, 3}, {<<"vier">>, 5}}]} =
+    luaport:call(Pid, 'Echo', [{{2, 3}, {<<"vier">>, 5}}]),
+  {ok, [6]} = luaport:call(Pid, 'Call', [<<"multiply">>, 2, 3]),
+  {ok, []} = luaport:call(Pid, 'Call', [<<"undefined">>, 2, 3]),
   PortRef2 = {local, moin},
   {ok, _Pid2} = luaport:spawn(PortRef2, Path, ?MODULE, [thing]),
-  {ok, [15]} = luaport:call(PortRef2, call, [<<"multiply">>, 3, 5]),
-  {ok, [15]} = luaport:call(PortRef2, call, [<<"multiply">>], [3, 5]),
+  {ok, [15]} = luaport:call(PortRef2, 'Call', [<<"multiply">>, 3, 5]),
+  {ok, [15]} = luaport:call(PortRef2, 'Call', [<<"multiply">>], [3, 5]),
   ok = luaport:despawn(PortRef2),
   PortRef3 = {global, sven},
   {ok, _Pid3} = luaport:spawn(PortRef3, Path, ?MODULE),
   {ok, _Pid4} = luaport:respawn(PortRef3),
-  luaport:cast(PortRef3, print, [<<"done">>]),
+  luaport:cast(PortRef3, 'Print', [<<"done">>]),
   ok = luaport:despawn(PortRef3),
-  luaport:cast(Pid, exec, [sleep, 500]),
-  {ok, [true]} = luaport:call(Pid, exec, [islist, "abc"]),
-  %{ok, [true]} = luaport:call(Pid, exec, [istuple, {}]),
-  {ok, [true]} = luaport:call(Pid, exec, [ismap, #{}]),
-  {ok, [false]} = luaport:call(Pid, exec, [islist, 7]),
-  %{ok, [false]} = luaport:call(Pid, exec, [istuple, true]),
-  {ok, [false]} = luaport:call(Pid, exec, [ismap, false]),
-  {ok, [[]]} = luaport:call(Pid, exec, [aslist, #{}]),
-  %{ok, [{}]} = luaport:call(Pid, exec, [astuple, []]),
-  {ok, [#{1 := 97, 2 := 98, 3 := 99}]} = luaport:call(Pid, exec, [asmap, "abc"]),
-  {ok, [<<"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++">>]} = luaport:call(Pid, echo, [<<"+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++">>]),
+  luaport:cast(Pid, 'Exec', [sleep, 500]),
+  {ok, [true]} = luaport:call(Pid, 'Exec', [islist, "abc"]),
+  {ok, [true]} = luaport:call(Pid, 'Exec', [ismap, #{}]),
+  {ok, [false]} = luaport:call(Pid, 'Exec', [islist, 7]),
+  {ok, [false]} = luaport:call(Pid, 'Exec', [ismap, false]),
+  {ok, [[]]} = luaport:call(Pid, 'Exec', [aslist, #{}]),
+  {ok,
+   [#{1 := 97,
+      2 := 98,
+      3 := 99}]} =
+    luaport:call(Pid, 'Exec', [asmap, "abc"]),
+  {ok,
+   [<<"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+      "+++++++++++++++">>]} =
+    luaport:call(Pid,
+                 'Echo',
+                 [<<"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                    "+++++++++++++++">>]),
   ok = luaport:despawn(banane),
   Path2 = filename:join([code:priv_dir(luaport), nil]),
   {ok, Pid5} = luaport:spawn(nil, Path2),
-  {ok, Binary1} = file:read_file(filename:join([Path2, "load1.lua"])),
+  {ok, Binary1} =
+    file:read_file(
+      filename:join([Path2, "load1.lua"])),
   {ok, []} = luaport:load(Pid5, Binary1),
-  luaport:cast(Pid5, func1),
-  {ok, Binary2} = file:read_file(filename:join([Path2, "load2.lua"])),
+  luaport:cast(Pid5, 'Func1'),
+  {ok, Binary2} =
+    file:read_file(
+      filename:join([Path2, "load2.lua"])),
   {ok, []} = luaport:load(Pid5, Binary2),
-  luaport:cast(Pid5, func2),
-  luaport:cast(Pid5, func1),
-  {error, _Reason} = luaport:load(Pid5, <<"end">>),
+  luaport:cast(Pid5, 'Func2'),
+  luaport:cast(Pid5, 'Func1'),
+  {error, _Reason} = luaport:load(Pid5, <<"invalid">>),
   {ok, []} = luaport:load(Pid5, <<"print('nice')">>),
   {ok, []} = luaport:load(Pid5, <<"a = 42">>),
   {ok, [42]} = luaport:load(Pid5, <<"return a">>),
@@ -73,17 +101,28 @@ case1(_Config) ->
   ok = luaport:despawn(nil),
   application:stop(luaport).
 
+  %{ok, [[{atom, true, false, nil}, "abc"]]} = luaport:call(Pid, 'Echo', [[{atom, true, false, nil}, "abc"]]),
+
+  %{ok, [true]} = luaport:call(Pid, 'Exec', [istuple, {}]),
+
+  %{ok, [false]} = luaport:call(Pid, 'Exec', [istuple, true]),
+
+  %{ok, [{}]} = luaport:call(Pid, 'Exec', [astuple, []]),
+
 init(_PortRef, Name) ->
   [42, Name].
+
 init(_PortRef, thing, Name) ->
   [23, Name].
 
 multiply(_PortRef, A, B) ->
   [A * B].
+
 multiply(_PortRef, thing, A, B) ->
   [A * B].
 
 print(PortRef, A) ->
   ct:pal("print: ~p ~p~n", [PortRef, A]).
+
 print(PortRef, thing, A) ->
   ct:pal("print: ~p ~p~n", [PortRef, A]).

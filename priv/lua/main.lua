@@ -1,29 +1,30 @@
+local port = require('port')
 local some, values = port.call.init('sunshine')
 
 print('hello', some, values)
 
-function echo(...)
+function Echo(...)
   print(...)
   return ...
 end
 
-function call(name, ...)
+function Call(name, ...)
   return port.call[name](...)
 end
 
-function cast(name, ...)
+function Cast(name, ...)
   port.cast[name](...)
 end
 
-function exec(name, ...)
+function Exec(name, ...)
   return port[name](...)
 end
 
-function after(time, ...)
+function After(time, ...)
   return port.after(time, function (s, ...) print(s, ...) end, 'after', ...)
 end
 
-function interval(time, ...)
+function Interval(time, ...)
   local i = 0
   return port.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
 end

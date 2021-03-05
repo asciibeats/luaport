@@ -8,4 +8,4 @@ start(_Type, _Args) ->
   luaport_sup:start_link().
 
 stop(_State) ->
-  ok.
+  luaport_sup:stop().

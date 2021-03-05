@@ -1,11 +1,15 @@
 # LuaPort
-*An [erlang port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua*
+*An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua; Can be compiled with lua or luajit*
 ```erlang
-{ok, Pid} = luaport:spawn(someid, "path/to/scripts"),
-{ok, [6]} = luaport:call(Pid, multiply, [2, 3]).
+{ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
+{ok, [6]} = luaport:call(Pid, 'Multiply', [2, 3]).
+```
+```elixir
+{:ok, pid} = :luaport.spawn(:some_id, 'path/to/scripts')
+{:ok, [6]} = :luaport.call(pid, :Multiply, [2, 3])
 ```
 ```lua
-function multiply(a, b)
+function Multiply(a, b)
   return a * b
 end
 ```
@@ -21,20 +25,20 @@ rebar3 ct
 If you use erlang and [rebar3](https://www.rebar3.org), add LuaPort as dependency to your `rebar.config`.
 ```erlang
 {deps, [
-  {luaport, "1.3.0"}
+  {luaport, "1.4.0"}
 ]}.
 ```
 Or for elixir and mix, add it to your `mix.exs`.
 ```elixir
 defp deps do
   [
-    {:luaport, "~> 1.3"}
+    {:luaport, "~> 1.4"}
   ]
 end
 ```
 Create a lua script at path/to/scripts called `main.lua`.
 ```lua
-function subtract(a, b)
+function Subtract(a, b)
   return a - b
 end
 ```
@@ -42,14 +46,14 @@ When using erlang, don't forget to start the application.
 ```erlang
 application:start(luaport),
 {ok, Pid} = luaport:spawn(myid, "path/to/scripts"),
-{ok, Results} = luaport:call(Pid, subtract, [43, 1]),
+{ok, [42]} = luaport:call(Pid, 'Subtract', [43, 1]),
 luaport:despawn(myid),
 application:stop(luaport).
 ```
 Elixir will start it automatically.
 ```elixir
 {:ok, pid} = :luaport.spawn(:myid, 'path/to/scripts')
-{:ok, results} = :luaport.call(pid, :subtract, [43, 1])
+{:ok, [42]} = :luaport.call(pid, :Subtract, [43, 1])
 :luaport.despawn(:myid)
 ```
 Ports can be spawned with a callback module to be able to call or cast erlang functions from lua context. The fourth argument, the pipe, is not interpreted by the port. Its elements will become arguments when calling or casting back.
@@ -104,13 +108,13 @@ port.cancel(ref)
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
 
-- LuaPort uses LuaJIT and has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L49-L55) get converted on their way to erlang. You can modify this behaviour by defining `LUAP_NOINT` on compilation.
-- Lua has only one collection type, the table. It is like a map in erlang. So when maps get translated to lua they become tables. 
+- Lua has only one collection type, the table. It is like a map in erlang. So when maps get translated to lua they become tables.
 - When lists or tuples get translated they become tables with a metatype 'list' or 'tuple', respectively.
 - Strings in erlang are lists and translated as such. Lua has no dedicated binary type. If you want to translate to strings, use binary strings.
 - Erlang has no boolean type and atoms serve no purpose in lua context. So atom true translates to true and atom false to false.
 - Atom nil translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on the way back.
+- If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L54-62) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
 
 #### Translations
 | Erlang | Elixir | Lua | Notes |
@@ -135,13 +139,3 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | port.islist(v) | if metatype 'list' |
 | port.istuple(v) | if metatype 'tuple' |
 | port.ismap(v) | if no metatype |
-
-## Help
-It is very much appreciated. What i could use help with:
-
-- Just trying out LuaPort and seeing if i made sensible choices
-- Finding and fixing bugs
-- Writing a more versatile makefile
-- Things i don't know i need help with
-
-Thank you!
