@@ -1,17 +1,17 @@
 # LuaPort
-*An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua. Works with [lua](https://www.lua.org) and [luajit](https://luajit.org).*
+#### An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua. Works with [lua](https://www.lua.org) and [luajit](https://luajit.org). ####
 
-Use erlang:
+Use erlang...
 ```erlang
 {ok, Pid} = luaport:spawn(some_id, "path/to/scripts"),
 {ok, [6]} = luaport:call(Pid, 'Multiply', [2, 3]).
 ```
-Or elixir:
+...or elixir...
 ```elixir
 {:ok, pid} = :luaport.spawn(:some_id, 'path/to/scripts')
 {:ok, [6]} = :luaport.call(pid, :Multiply, [2, 3])
 ```
-To execute a lua script:
+...to execute a lua script:
 ```lua
 function Multiply(a, b)
   return a * b
@@ -118,7 +118,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - Erlang has no boolean type and atoms serve no purpose in lua context. So atom true translates to true and atom false to false.
 - Atom nil translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on the way back.
-- If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L54-62) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
+- If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L55-L63) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
 
 #### Translations
 | Erlang | Elixir | Lua | Notes |
