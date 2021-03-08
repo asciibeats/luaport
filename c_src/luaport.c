@@ -1206,7 +1206,7 @@ int main(int argc, char *argv[])
 #else
   for (lib = load_libs; lib->func; lib++)
   {
-    luaL_requiref(L, lib->name, lib->func, 0);
+    luaL_requiref(L, lib->name, lib->func, 1);
     lua_pop(L, 1);
   }
 #endif
