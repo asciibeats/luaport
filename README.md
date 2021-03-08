@@ -1,5 +1,5 @@
 # LuaPort
-*An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua; Can be compiled with lua or luajit*
+*An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua. Works with [lua](https://www.lua.org) and [luajit](https://luajit.org).*
 
 Use erlang:
 ```erlang
