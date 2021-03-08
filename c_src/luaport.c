@@ -22,7 +22,6 @@
 #ifndef LUAP_BUFLEN
   #define LUAP_BUFLEN 2048
 #endif
-
 #define LUAP_PACKET 4
 #define LUAP_MTYPE "_mtype"
 #define LUAP_TMAP 0
@@ -609,7 +608,7 @@ static void l2e_float(lua_State *L, int index, ei_x_buff *eb)
 }
 
 #ifdef LUAP_JIT
-#ifndef LUAP_NOINT
+  #ifndef LUAP_NOINT
 static void l2e_number_jit(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
@@ -625,7 +624,7 @@ static void l2e_number_jit(lua_State *L, int index, ei_x_buff *eb)
     ei_x_encode_double(eb, n);
   }
 }
-#endif
+  #endif
 #else
 static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
 {
@@ -1133,9 +1132,9 @@ static const luaL_Reg load_libs[] = {
 #ifdef LUAP_JIT
   {"", luaopen_base},
   {LUA_JITLIBNAME, luaopen_jit},
-#ifdef LUAP_BIT
+  #ifdef LUAP_BIT
   {LUA_BITLIBNAME, luaopen_bit},
-#endif
+  #endif
 #else
   {LUA_GNAME, luaopen_base},
 #endif
@@ -1158,9 +1157,9 @@ static const luaL_Reg load_libs[] = {
 
 #ifdef LUAP_JIT
 static const luaL_Reg preload_libs[] = {
-#ifdef LUAP_FFI
+  #ifdef LUAP_FFI
   {LUA_FFILIBNAME, luaopen_ffi},
-#endif
+  #endif
   {NULL, NULL}
 };
 #endif
