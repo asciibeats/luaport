@@ -1,6 +1,5 @@
 -module(luaport_server).
 
-%-export([behaviour_info/1]).
 -export([start_link/5]).
 -export([init/5]).
 -export([call/5]).
@@ -30,12 +29,8 @@
   222 => {respawn, call_result},
   230 => {respawn, print_len},
   231 => {respawn, print_malloc},
-  232 => {respawn, print_buf}}).
-
-%behaviour_info(callbacks) ->
-%  [{get_happy, 0}, {get_ecstatic, 0}];
-%behaviour_info(_) ->
-%  undefined.
+  232 => {respawn, print_buf},
+  240 => {respawn, ei_malloc}}).
 
 start_link(PortRef, Path, M, Pipe, Timeout) ->
   Pid = spawn_link(?MODULE, init, [PortRef, Path, M, Pipe, Timeout]),

@@ -27,6 +27,7 @@
 #define LUAP_TMAP 0
 #define LUAP_TTUPLE 1
 #define LUAP_TLIST 2
+#define LUAP_EB_EXTRA 100
 
 #define EXIT_FAIL_READ 200
 #define EXIT_FAIL_WRITE 201
@@ -45,6 +46,7 @@
 #define EXIT_PRINT_LEN 230
 #define EXIT_PRINT_MALLOC 231
 #define EXIT_PRINT_BUF 232
+#define EXIT_EI_MALLOC 240
 
 #ifdef LUAP_JIT
   #define EXIT_FAIL_JIT 203
@@ -86,13 +88,13 @@ static size_t read4(const unsigned char *buf)
   return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
 }
 
-static void write4(char *buf, int val)
+/*static void write4(char *buf, int val)
 {
   buf[0] = (val >> 24) & 0xff;
   buf[1] = (val >> 16) & 0xff;
   buf[2] = (val >> 8) & 0xff;
   buf[3] = val & 0xff;
-}
+}*/
 
 static size_t swap4(size_t val)
 {
@@ -278,6 +280,21 @@ static int luap_hasmetatype(lua_State *L, int index, int type)
   {
     return type == LUAP_TMAP;
   }
+}
+
+static int luap_ei_x_skip(ei_x_buff *eb, int len)
+{
+  eb->index += len;
+  int buffsz = eb->index + LUAP_EB_EXTRA;
+
+  if (buffsz > eb->buffsz)
+  {
+    buffsz += LUAP_EB_EXTRA;
+    eb->buffsz = buffsz;
+    eb->buff = realloc(eb->buff, buffsz);
+  }
+
+  return eb->buff != NULL;
 }
 
 static int e2l_any(const char *buf, int *index, lua_State *L);
@@ -607,8 +624,19 @@ static void l2e_float(lua_State *L, int index, ei_x_buff *eb)
   ei_x_encode_double(eb, n);
 }
 
-#ifdef LUAP_JIT
-  #ifndef LUAP_NOINT
+#ifndef LUAP_JIT
+static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
+{
+  if (lua_isinteger(L, index))
+  {
+    l2e_integer(L, index, eb);
+  }
+  else
+  {
+    l2e_float(L, index, eb);
+  }
+}
+#elif !defined(LUAP_NOINT)
 static void l2e_number_jit(lua_State *L, int index, ei_x_buff *eb)
 {
   lua_Number n = lua_tonumber(L, index);
@@ -622,19 +650,6 @@ static void l2e_number_jit(lua_State *L, int index, ei_x_buff *eb)
   else
   {
     ei_x_encode_double(eb, n);
-  }
-}
-  #endif
-#else
-static void l2e_number(lua_State *L, int index, ei_x_buff *eb)
-{
-  if (lua_isinteger(L, index))
-  {
-    l2e_integer(L, index, eb);
-  }
-  else
-  {
-    l2e_float(L, index, eb);
   }
 }
 #endif
@@ -702,16 +717,17 @@ static void l2e_table_tuple(lua_State *L, int index, ei_x_buff *eb)
 static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
 {
 #ifdef LUAP_JIT
-    index = abs_index(L, index);
+  index = abs_index(L, index);
 #else
-    index = lua_absindex(L, index);
+  index = lua_absindex(L, index);
 #endif
 
-  int eb_index = eb->index + 1;
+  int eb_index = eb->index;
 
-  char b[5];
-  b[0] = ERL_MAP_EXT;
-  ei_x_append_buf(eb, b, 5);
+  if (!luap_ei_x_skip(eb, 5))
+  {
+    exit(EXIT_EI_MALLOC);
+  }
 
   lua_pushnil(L);
   int arity = 0;
@@ -724,14 +740,12 @@ static void l2e_table_map(lua_State *L, int index, ei_x_buff *eb)
     arity++;
   }
 
-  write4(eb->buff + eb_index, arity);
+  ei_encode_map_header(eb->buff, &eb_index, arity);
 }
 
 static void l2e_table(lua_State *L, int index, ei_x_buff *eb)
 {
-  luaL_getmetafield(L, index, LUAP_MTYPE);
-
-  if (lua_isnumber(L, -1))
+  if (luaL_getmetafield(L, index, LUAP_MTYPE))
   {
     int mtype = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
@@ -778,14 +792,16 @@ static void l2e_userdata(lua_State *L, int index, ei_x_buff *eb)
 
 static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
 {
-  switch (lua_type(L, index))
+  int type = lua_type(L, index);
+
+  switch (type)
   {
     case LUA_TNUMBER:
 #ifdef LUAP_JIT
-  #ifndef LUAP_NOINT
-      l2e_number_jit(L, index, eb);
-  #else
+  #ifdef LUAP_NOINT
       l2e_float(L, index, eb);
+  #else
+      l2e_number_jit(L, index, eb);
   #endif
 #else
       l2e_number(L, index, eb);
@@ -809,7 +825,7 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
       break;
 #endif
     default:
-      luaL_error(L, "unsupported type");
+      luaL_error(L, "unsupported type %d at index %d", type, index);
   }
 }
 
