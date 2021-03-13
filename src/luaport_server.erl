@@ -6,8 +6,8 @@
 -export([cast/5]).
 -export([load/3]).
 
--define(ATOMS, [true, false, undefined]).
--define(TIMEOUT, 5000).
+%-define(ATOMS, [true, false, undefined]).
+%-define(TIMEOUT, 5000).
 -define(EXIT_REASONS, #{
   0 => {shutdown, success},
   139 => {respawn, segmentation_fault},
