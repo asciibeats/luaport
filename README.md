@@ -1,5 +1,5 @@
 # LuaPort
-#### An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua. Works with [lua](https://www.lua.org) and [luajit](https://luajit.org). ####
+*An [erlang/elixir port](http://erlang.org/doc/tutorial/c_port.html) for scripting application logic in lua. Works with [lua](https://www.lua.org) and [luajit](https://luajit.org).*
 
 Use erlang...
 ```erlang
@@ -118,7 +118,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - Erlang has no boolean type and atoms serve no purpose in lua context. So atom true translates to true and atom false to false.
 - Atom nil translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on the way back.
-- If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L55-L63) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
+- If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L56-L64) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
 
 #### Translations
 | Erlang | Elixir | Lua | Notes |
