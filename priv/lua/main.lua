@@ -28,3 +28,7 @@ function Interval(time, ...)
   local i = 0
   return port.interval(time, function (s, ...) print(s, i, ...); i = i + 1 end, 'interval', ...)
 end
+
+function Sleep(time)
+  port.sleep(time)
+end
