@@ -143,7 +143,7 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
       exit(maps:get(Status, ?EXIT_REASONS, {respawn, Status}))
   after Timeout ->
     io:format("err ~p ~p~n", [PortRef, timeout]),
-    {error, timeout}
+    {TRefs, {error, timeout}}
   end.
 
 register_name({global, Name}, Pid) ->
