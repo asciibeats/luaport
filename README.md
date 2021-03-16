@@ -108,6 +108,10 @@ port.after(3000, function (str) print(str) end, 'call once, if not canceled')
 local ref = port.interval(1000, function (str) print(str) end, 'call repeatedly until canceled')
 port.cancel(ref)
 ```
+Finally, to just suspend execution for a while, there exists a sleep function.
+```lua
+port.sleep(2000)
+```
 
 ## Quirks
 Since erlang and lua datatypes do not align too nicely, there are some things to consider.
