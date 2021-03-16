@@ -2,11 +2,11 @@ ERTS_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts/ert
 ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, include)]).")
 ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~ts\", [code:lib_dir(erl_interface, lib)]).")
 
-# !!! SWAP THESE LINES TO USE LUAJIT
-LUA_CFLAGS ?= $(shell pkg-config --cflags lua54)
-LUA_LDFLAGS ?= $(shell pkg-config --libs lua54)
-#LUA_CFLAGS ?= -DLUAP_JIT $(shell pkg-config --cflags luajit)
-#LUA_LDFLAGS ?= $(shell pkg-config --libs luajit)
+# !!! SWAP THESE LINES TO USE LUA 5.4
+LUA_CFLAGS ?= -DLUAP_JIT $(shell pkg-config --cflags luajit)
+LUA_LDFLAGS ?= $(shell pkg-config --libs luajit)
+#LUA_CFLAGS ?= $(shell pkg-config --cflags lua54)
+#LUA_LDFLAGS ?= $(shell pkg-config --libs lua54)
 
 DEFINES := -D_REENTRANT=PTHREADS
 #DEFINES += -DLUA_USE_APICHECK
