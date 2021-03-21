@@ -6,31 +6,29 @@
 -export([cast/5]).
 -export([load/3]).
 
-%-define(ATOMS, [true, false, undefined]).
-%-define(TIMEOUT, 5000).
 -define(EXIT_REASONS, #{
-  0 => {shutdown, success},
-  139 => {respawn, segmentation_fault},
-  141 => {respawn, broken_pipe},
-  200 => {respawn, fail_read},
-  201 => {respawn, fail_write},
-  202 => {respawn, fail_size},
-  203 => {respawn, fail_jit},
-  210 => {respawn, bad_version},
-  211 => {respawn, bad_tuple},
-  212 => {respawn, bad_atom},
-  213 => {respawn, bad_func},
-  214 => {respawn, bad_args},
-  215 => {respawn, bad_call},
-  216 => {respawn, bad_binary},
-  217 => {respawn, bad_command},
-  220 => {respawn, call_read},
-  221 => {respawn, call_version},
-  222 => {respawn, call_result},
-  230 => {respawn, print_len},
-  231 => {respawn, print_malloc},
-  232 => {respawn, print_buf},
-  240 => {respawn, ei_malloc}}).
+  0 => success,
+  139 => segmentation_fault,
+  141 => broken_pipe,
+  200 => fail_read,
+  201 => fail_write,
+  202 => fail_size,
+  203 => fail_jit,
+  210 => bad_version,
+  211 => bad_tuple,
+  212 => bad_atom,
+  213 => bad_func,
+  214 => bad_args,
+  215 => bad_call,
+  216 => bad_binary,
+  217 => bad_command,
+  220 => call_read,
+  221 => call_version,
+  222 => call_result,
+  230 => print_len,
+  231 => print_malloc,
+  232 => print_buf,
+  240 => ei_malloc}).
 
 start_link(PortRef, Path, M, Pipe, Timeout) ->
   Pid = spawn_link(?MODULE, init, [PortRef, Path, M, Pipe, Timeout]),
@@ -38,7 +36,6 @@ start_link(PortRef, Path, M, Pipe, Timeout) ->
   {ok, Pid}.
 
 init(PortRef, Path, M, Pipe, Timeout) when is_list(Path), is_atom(M), is_list(Pipe) ->
-  process_flag(trap_exit, true),
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
   {TRefs, {ok, []}} = portloop(PortRef, Port, M, Pipe, #{}, Timeout),
@@ -66,18 +63,35 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
   receive
     {call, F, A, Pipe2, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout),
-      From ! {Ref, Result},
-      mainloop(PortRef, Port, M, Pipe, NewTRefs);
+      case portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout) of
+        {error, Reason} ->
+          From ! {Ref, {error, Reason}},
+          port_close(Port),
+          exit(Reason);
+        {NewTRefs, Result} ->
+          From ! {Ref, Result},
+          mainloop(PortRef, Port, M, Pipe, NewTRefs)
+      end;
     {cast, F, A, Pipe2, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
-      {NewTRefs, _Result} = portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout),
-      mainloop(PortRef, Port, M, Pipe, NewTRefs);
+      case portloop(PortRef, Port, M, Pipe ++ Pipe2, TRefs, Timeout) of
+        {error, Reason} ->
+          port_close(Port),
+          exit(Reason);
+        {NewTRefs, _Result} ->
+          mainloop(PortRef, Port, M, Pipe, NewTRefs)
+      end;
     {load, Binary, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary(Binary)}},
-      {NewTRefs, Result} = portloop(PortRef, Port, M, Pipe, TRefs, Timeout),
-      From ! {Ref, Result},
-      mainloop(PortRef, Port, M, Pipe, NewTRefs);
+      case portloop(PortRef, Port, M, Pipe, TRefs, Timeout) of
+        {error, Reason} ->
+          From ! {Ref, {error, Reason}},
+          port_close(Port),
+          exit(Reason);
+        {NewTRefs, Result} ->
+          From ! {Ref, Result},
+          mainloop(PortRef, Port, M, Pipe, NewTRefs)
+      end;
     {'after', LRef, Timeout} ->
       case maps:take(LRef, TRefs) of
         {_TRef, NewTRefs} ->
@@ -95,10 +109,7 @@ mainloop(PortRef, Port, M, Pipe, TRefs) ->
           mainloop(PortRef, Port, M, Pipe, NewTRefs);
         false ->
           mainloop(PortRef, Port, M, Pipe, TRefs)
-      end;
-    {'EXIT', _From, Reason} ->
-      port_close(Port),
-      exit(Reason)
+      end
   end.
 
 portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
@@ -113,7 +124,7 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
           tryapply(M, F, [PortRef | Pipe ++ A]),
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {info, List} ->
-          io:format("lua ~p ~p~n", [PortRef, List]),
+          io:format("lua ~w ~p~n", [PortRef, List]),
           portloop(PortRef, Port, M, Pipe, TRefs, Timeout);
         {'after', Time, LRef} ->
           {ok, TRef} = timer:send_after(Time, {'after', LRef, Timeout}),
@@ -132,18 +143,18 @@ portloop(PortRef, Port, M, Pipe, TRefs, Timeout) ->
               portloop(PortRef, Port, M, Pipe, TRefs, Timeout)
           end;
         {error, Reason} ->
-          io:format("err ~p ~s~n", [PortRef, Reason]),
-          {TRefs, {error, Reason}};
+          io:format("err ~w ~s~n", [PortRef, Reason]),
+          {TRefs, {error, {lua, Reason}}};
         {ok, Results} ->
           {TRefs, {ok, Results}}
       catch
-        error:badarg -> exit({respawn, unsafe_data})
+        error:badarg -> {error, unsafe_data}
       end;
     {Port, {exit_status, Status}} ->
-      exit(maps:get(Status, ?EXIT_REASONS, {respawn, Status}))
+      {error, {port, maps:get(Status, ?EXIT_REASONS, Status)}}
   after Timeout ->
-    io:format("err ~p ~p~n", [PortRef, timeout]),
-    {TRefs, {error, timeout}}
+    io:format("err ~w ~w~n", [PortRef, timeout]),
+    {error, timeout}
   end.
 
 register_name({global, Name}, Pid) ->
