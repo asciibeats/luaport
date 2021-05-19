@@ -1,7 +1,9 @@
 local port = require('port')
 local some, values = port.call.init('sunshine')
+local a, b = unpack(config or {})
 
 print('hello', some, values)
+print('config', a, b)
 
 function Echo(...)
   print(...)

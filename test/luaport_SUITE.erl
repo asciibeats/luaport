@@ -14,12 +14,13 @@ all() ->
 case1(_Config) ->
   application:start(luaport),
   Path = filename:join([code:priv_dir(luaport), lua]),
-  {ok, Pid} = luaport:spawn(banane, Path, #{asdf => 999}, ?MODULE),
+  {ok, Pid} = luaport:spawn(banane, Path, #{config => {666, moin}}, ?MODULE),
   {ok, []} = luaport:load(Pid, <<"print(_VERSION)">>),
   {ok, [[128]]} = luaport:call(Pid, 'Echo', [[128]]),
+  {ok, []} = luaport:push(Pid, #{asdf => {999, qwer}}),
+  {ok, [{999, <<"qwer">>}]} = luaport:load(Pid, <<"return asdf">>),
   {ok, [-2147483648, 2147483647]} = luaport:call(Pid, 'Echo', [-2147483648, 2147483647]),
   {error, {lua, "don't panic"}} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
-
   luaport:cast(Pid, 'After', [300, first]),
   luaport:cast(Pid, 'After', [100, second]),
   {ok, [LRef]} = luaport:call(Pid, 'After', [500, third]),
