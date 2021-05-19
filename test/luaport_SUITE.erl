@@ -5,11 +5,8 @@
 -export([all/0]).
 -export([case1/1]).
 -export([init/2]).
--export([init/3]).
 -export([multiply/3]).
--export([multiply/4]).
 -export([print/2]).
--export([print/3]).
 
 all() ->
   [case1].
@@ -17,11 +14,12 @@ all() ->
 case1(_Config) ->
   application:start(luaport),
   Path = filename:join([code:priv_dir(luaport), lua]),
-  {ok, Pid} = luaport:spawn(banane, Path, ?MODULE),
+  {ok, Pid} = luaport:spawn(banane, Path, #{asdf => 999}, ?MODULE),
   {ok, []} = luaport:load(Pid, <<"print(_VERSION)">>),
   {ok, [[128]]} = luaport:call(Pid, 'Echo', [[128]]),
   {ok, [-2147483648, 2147483647]} = luaport:call(Pid, 'Echo', [-2147483648, 2147483647]),
   {error, {lua, "don't panic"}} = luaport:call(Pid, error, [<<"don't panic">>, 0]),
+
   luaport:cast(Pid, 'After', [300, first]),
   luaport:cast(Pid, 'After', [100, second]),
   {ok, [LRef]} = luaport:call(Pid, 'After', [500, third]),
@@ -34,17 +32,16 @@ case1(_Config) ->
   {ok, [6]} = luaport:call(Pid, 'Call', [<<"multiply">>, 2, 3]),
   {ok, []} = luaport:call(Pid, 'Call', [<<"undefined">>, 2, 3]),
   PortRef2 = {local, moin},
-  {ok, _Pid2} = luaport:spawn(PortRef2, Path, ?MODULE, [thing]),
+  {ok, _Pid2} = luaport:spawn(PortRef2, Path, #{}, ?MODULE),
   {ok, [15]} = luaport:call(PortRef2, 'Call', [<<"multiply">>, 3, 5]),
-  {ok, [15]} = luaport:call(PortRef2, 'Call', [<<"multiply">>], [3, 5]),
   ok = luaport:despawn(PortRef2),
   PortRef3 = {global, sven},
-  {ok, _Pid3} = luaport:spawn(PortRef3, Path, ?MODULE),
+  {ok, _Pid3} = luaport:spawn(PortRef3, Path, #{}, ?MODULE),
   {ok, _Pid4} = luaport:respawn(PortRef3),
   luaport:cast(PortRef3, print, [<<"done">>]),
   ok = luaport:despawn(PortRef3),
   luaport:cast(Pid, print, [<<"sleeping for two seconds...">>]),
-  luaport:call(Pid, 'Sleep', [2000], [], 3000),
+  luaport:call(Pid, 'Sleep', [2000], 3000),
   luaport:cast(Pid, print, [<<"...done">>]),
   {ok, [true]} = luaport:call(Pid, 'Exec', [islist, "abc"]),
   {ok, [true]} = luaport:call(Pid, 'Exec', [ismap, #{}]),
@@ -95,17 +92,8 @@ case1(_Config) ->
 init(_PortRef, Name) ->
   [42, Name].
 
-init(_PortRef, thing, Name) ->
-  [23, Name].
-
 multiply(_PortRef, A, B) ->
   [A * B].
 
-multiply(_PortRef, thing, A, B) ->
-  [A * B].
-
 print(PortRef, A) ->
-  ct:pal("print: ~p ~p~n", [PortRef, A]).
-
-print(PortRef, thing, A) ->
   ct:pal("print: ~p ~p~n", [PortRef, A]).

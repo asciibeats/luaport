@@ -17,8 +17,8 @@ stop() ->
 init(_Args) ->
   {ok, {{one_for_one, 1, 5}, []}}.
 
-spawn(PortRef, Path, M, Pipe, Timeout) ->
-  supervisor:start_child(?MODULE, {PortRef, {luaport_server, start_link, [PortRef, Path, M, Pipe, Timeout]}, transient, 1000, worker, [luaport_server]}).
+spawn(PortRef, Path, Config, Callback, Timeout) ->
+  supervisor:start_child(?MODULE, {PortRef, {luaport_server, start_link, [PortRef, Path, Config, Callback, Timeout]}, transient, 1000, worker, [luaport_server]}).
 
 respawn(PortRef) ->
   supervisor:terminate_child(?MODULE, PortRef),
