@@ -5,6 +5,7 @@
 -export([call/4]).
 -export([cast/4]).
 -export([load/3]).
+-export([push/3]).
 
 -define(EXIT_REASONS, #{
   0 => success,
@@ -22,6 +23,7 @@
   215 => bad_call,
   216 => bad_binary,
   217 => bad_command,
+  218 => bad_config,
   220 => call_read,
   221 => call_version,
   222 => call_result,
@@ -35,29 +37,28 @@ start_link(PortRef, Path, Config, Callback, Timeout) ->
   register_name(PortRef, Pid),
   {ok, Pid}.
 
-init(PortRef, Path, Config, Callback, Timeout) when is_list(Path), is_atom(Callback), is_map(Config) ->
+init(PortRef, Path, Config, Callback, Timeout) when is_list(Path), is_map(Config), is_atom(Callback) ->
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
+  Port ! {self(), {command, term_to_binary(Config)}},
   {TRefs, {ok, []}} = portloop(PortRef, Port, Callback, #{}, Timeout),
   mainloop(PortRef, Port, Callback, TRefs).
 
 call(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
   Ref = make_ref(),
   send(PortRef, {call, F, A, Timeout, self(), Ref}),
-  receive
-    {Ref, Result} -> Result
-  end.
+  receive {Ref, Result} -> Result end.
 
 cast(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
-  send(PortRef, {cast, F, A, Timeout}),
-  ok.
+  send(PortRef, {cast, F, A, Timeout}), ok.
 
 load(PortRef, Binary, Timeout) when is_binary(Binary) ->
   Ref = make_ref(),
   send(PortRef, {load, Binary, Timeout, self(), Ref}),
-  receive
-    {Ref, Result} -> Result
-  end.
+  receive {Ref, Result} -> Result end.
+
+push(PortRef, Global, Timeout) when is_map(Global) ->
+  send(PortRef, {push, Global, Timeout}), ok.
 
 mainloop(PortRef, Port, Callback, TRefs) ->
   receive
@@ -90,6 +91,15 @@ mainloop(PortRef, Port, Callback, TRefs) ->
           exit(Reason);
         {NewTRefs, Result} ->
           From ! {Ref, Result},
+          mainloop(PortRef, Port, Callback, NewTRefs)
+      end;
+    {push, Global, Timeout} ->
+      Port ! {self(), {command, term_to_binary(Global)}},
+      case portloop(PortRef, Port, Callback, TRefs, Timeout) of
+        {error, Reason} ->
+          port_close(Port),
+          exit(Reason);
+        {NewTRefs, _Result} ->
           mainloop(PortRef, Port, Callback, NewTRefs)
       end;
     {'after', LRef, Timeout} ->
@@ -180,11 +190,11 @@ wait_for_name(Name, false) ->
 wait_for_name(_Name, true) ->
   ok.
 
-tryapply(M, F, A) when M =/= undefined ->
+tryapply(Callback, F, A) when Callback =/= undefined ->
   try
-    apply(M, F, A)
+    apply(Callback, F, A)
   catch
     error:undef -> []
   end;
-tryapply(_M, _F, _A) ->
+tryapply(_Callback, _F, _A) ->
   [].
