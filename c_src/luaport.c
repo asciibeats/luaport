@@ -41,6 +41,7 @@
 #define EXIT_BAD_BINARY 216
 #define EXIT_BAD_COMMAND 217
 #define EXIT_BAD_CONFIG 218
+#define EXIT_BAD_ANY 219
 #define EXIT_CALL_READ 220
 #define EXIT_CALL_VERSION 221
 #define EXIT_CALL_RESULT 222
@@ -182,6 +183,7 @@ static int write_term(ei_x_buff *eb)
   return len;
 }
 
+#ifdef LUAP_DEBUG
 static void luap_printf(ei_x_buff *eb, const char *format, ...)
 {
   int len = 0;
@@ -223,6 +225,7 @@ static void luap_printf(ei_x_buff *eb, const char *format, ...)
   write_term(eb);
   free(buf);
 }
+#endif
 
 static void luap_setmetatype(lua_State *L, int index, int type)
 {
@@ -386,7 +389,11 @@ static int e2l_list(const char *buf, int *index, lua_State *L)
 
   for (int i = 1; i <= arity; i++)
   {
-    e2l_any(buf, index, L);
+    if (e2l_any(buf, index, L))
+    {
+      exit(EXIT_BAD_ANY);
+    }
+
     lua_rawseti(L, -2, i);
   }
   
@@ -440,7 +447,11 @@ static int e2l_tuple(const char *buf, int *index, lua_State *L)
 
   for (int i = 1; i <= arity; i++)
   {
-    e2l_any(buf, index, L);
+    if (e2l_any(buf, index, L))
+    {
+      exit(EXIT_BAD_ANY);
+    }
+
     lua_rawseti(L, -2, i);
   }
 
@@ -476,8 +487,11 @@ static int e2l_map(const char *buf, int *index, lua_State *L)
 
   for (int i = 0; i < arity; i++)
   {
-    e2l_any(buf, index, L);
-    e2l_any(buf, index, L);
+    if (e2l_any(buf, index, L) || e2l_any(buf, index, L))
+    {
+      exit(EXIT_BAD_ANY);
+    }
+
     lua_rawset(L, -3);
   }
 
@@ -495,8 +509,11 @@ static int e2l_global(const char *buf, int *index, lua_State *L)
 
   for (int i = 0; i < arity; i++)
   {
-    e2l_any(buf, index, L);
-    e2l_any(buf, index, L);
+    if (e2l_any(buf, index, L) || e2l_any(buf, index, L))
+    {
+      exit(EXIT_BAD_ANY);
+    }
+
     lua_rawset(L, LUA_GLOBALSINDEX);
   }
 
@@ -565,7 +582,10 @@ static int e2l_args(const char *buf, int *index, lua_State *L, int *nargs)
 
     for (int i = 0; i < *nargs; i++)
     {
-      e2l_any(buf, index, L);
+      if (e2l_any(buf, index, L))
+      {
+        exit(EXIT_BAD_ANY);
+      }
     }
 
     ei_skip_term(buf, index);
@@ -845,7 +865,7 @@ static void l2e_any(lua_State *L, int index, ei_x_buff *eb)
       break;
 #endif
     default:
-      luaL_error(L, "unsupported type %d at index %d", type, index);
+      luaL_error(L, "unsupported type \"%s\" at index %d", lua_typename(L, index), index);
   }
 }
 
@@ -1267,6 +1287,7 @@ int main(int argc, char *argv[])
       l2e_ok(L, 1, &eb);
     }
 
+    lua_settop(L, 0);
     write_term(&eb);
   }
   else
@@ -1341,20 +1362,18 @@ int main(int argc, char *argv[])
     {
       if (e2l_global(buf, &index, L))
       {
-        l2e_error(L, 1, &eb);
+        exit(EXIT_BAD_CONFIG);
       }
-      else
-      {
-        l2e_ok(L, 1, &eb);
-      }
+
+      l2e_ok(L, 1, &eb);
     }
     else
     {
       exit(EXIT_BAD_COMMAND);
     }
 
-    write_term(&eb);
     lua_settop(L, 0);
+    write_term(&eb);
   }
 
   lua_close(L);

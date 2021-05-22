@@ -24,6 +24,7 @@
   216 => bad_binary,
   217 => bad_command,
   218 => bad_config,
+  219 => bad_any,
   220 => call_read,
   221 => call_version,
   222 => call_result,
@@ -35,14 +36,16 @@
 start_link(PortRef, Path, Config, Callback, Timeout) ->
   Pid = spawn_link(?MODULE, init, [PortRef, Path, Config, Callback, Timeout]),
   register_name(PortRef, Pid),
-  {ok, Pid}.
+  Ref = make_ref(),
+  Pid ! {results, self(), Ref},
+  receive {Ref, Results} -> {ok, Pid, Results} end.
 
 init(PortRef, Path, Config, Callback, Timeout) when is_list(Path), is_map(Config), is_atom(Callback) ->
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),
   Port ! {self(), {command, term_to_binary(Config)}},
-  {TRefs, {ok, []}} = portloop(PortRef, Port, Callback, #{}, Timeout),
-  mainloop(PortRef, Port, Callback, TRefs).
+  {TRefs, {ok, Results}} = portloop(PortRef, Port, Callback, #{}, Timeout),
+  mainloop(PortRef, Port, Callback, TRefs, Results).
 
 call(PortRef, F, A, Timeout) when is_atom(F), is_list(A) ->
   Ref = make_ref(),
@@ -60,7 +63,7 @@ load(PortRef, Binary, Timeout) when is_binary(Binary) ->
 push(PortRef, Global, Timeout) when is_map(Global) ->
   send(PortRef, {push, Global, Timeout}), ok.
 
-mainloop(PortRef, Port, Callback, TRefs) ->
+mainloop(PortRef, Port, Callback, TRefs, Results) ->
   receive
     {call, F, A, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
@@ -71,7 +74,7 @@ mainloop(PortRef, Port, Callback, TRefs) ->
           exit(Reason);
         {NewTRefs, Result} ->
           From ! {Ref, Result},
-          mainloop(PortRef, Port, Callback, NewTRefs)
+          mainloop(PortRef, Port, Callback, NewTRefs, Results)
       end;
     {cast, F, A, Timeout} ->
       Port ! {self(), {command, term_to_binary({F, A})}},
@@ -80,7 +83,7 @@ mainloop(PortRef, Port, Callback, TRefs) ->
           port_close(Port),
           exit(Reason);
         {NewTRefs, _Result} ->
-          mainloop(PortRef, Port, Callback, NewTRefs)
+          mainloop(PortRef, Port, Callback, NewTRefs, Results)
       end;
     {load, Binary, Timeout, From, Ref} ->
       Port ! {self(), {command, term_to_binary(Binary)}},
@@ -91,7 +94,7 @@ mainloop(PortRef, Port, Callback, TRefs) ->
           exit(Reason);
         {NewTRefs, Result} ->
           From ! {Ref, Result},
-          mainloop(PortRef, Port, Callback, NewTRefs)
+          mainloop(PortRef, Port, Callback, NewTRefs, Results)
       end;
     {push, Global, Timeout} ->
       Port ! {self(), {command, term_to_binary(Global)}},
@@ -100,26 +103,29 @@ mainloop(PortRef, Port, Callback, TRefs) ->
           port_close(Port),
           exit(Reason);
         {NewTRefs, _Result} ->
-          mainloop(PortRef, Port, Callback, NewTRefs)
+          mainloop(PortRef, Port, Callback, NewTRefs, Results)
       end;
     {'after', LRef, Timeout} ->
       case maps:take(LRef, TRefs) of
         {_TRef, NewTRefs} ->
           Port ! {self(), {command, term_to_binary(LRef)}},
           {NewerTRefs, _Result} = portloop(PortRef, Port, Callback, NewTRefs, Timeout),
-          mainloop(PortRef, Port, Callback, NewerTRefs);
+          mainloop(PortRef, Port, Callback, NewerTRefs, Results);
         error ->
-          mainloop(PortRef, Port, Callback, TRefs)
+          mainloop(PortRef, Port, Callback, TRefs, Results)
       end;
     {interval, LRef, Timeout} ->
       case maps:is_key(LRef, TRefs) of
         true ->
           Port ! {self(), {command, term_to_binary(-LRef)}},
           {NewTRefs, _Result} = portloop(PortRef, Port, Callback, TRefs, Timeout),
-          mainloop(PortRef, Port, Callback, NewTRefs);
+          mainloop(PortRef, Port, Callback, NewTRefs, Results);
         false ->
-          mainloop(PortRef, Port, Callback, TRefs)
-      end
+          mainloop(PortRef, Port, Callback, TRefs, Results)
+      end;
+    {results, From, Ref} ->
+      From ! {Ref, Results},
+      mainloop(PortRef, Port, Callback, TRefs, Results)
   end.
 
 portloop(PortRef, Port, Callback, TRefs, Timeout) ->
@@ -154,7 +160,7 @@ portloop(PortRef, Port, Callback, TRefs, Timeout) ->
           end;
         {error, Reason} ->
           io:format("err ~w ~s~n", [PortRef, Reason]),
-          {TRefs, {error, {lua, Reason}}};
+          {TRefs, {error, Reason}};
         {ok, Results} ->
           {TRefs, {ok, Results}}
       catch
