@@ -70,12 +70,12 @@ return 23, 42
 ```
 ...and retrieve them like this:
 ```erlang
-{ok, Pid1, [23, 42]} = luaport:spawn(myid, "path/to/scripts"),
-{ok, Pid2, [23, 42]} = luaport:respawn(myid).
+{ok, _Pid1, [23, 42]} = luaport:spawn(myid, "path/to/scripts"),
+{ok, _Pid2, [23, 42]} = luaport:respawn(myid).
 ```
 To add some static data to lua's context, add a map as third argument to the spawn function.
 ```erlang
-{ok, Pid, []} = luaport:spawn(myid, "path/to/scripts", #{config => {what, ever}, greeting => <<"moin">>}).
+{ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{config => {what, ever}, greeting => <<"moin">>}).
 ```
 The elements of that map will be available as global variables. Be careful not to choose colliding names, as these variables will be named after the maps keys.
 ```lua
@@ -91,7 +91,7 @@ luaport:push(myid, #{name => <<"til">>}).
 ```
 To pull some dynamic data into lua's context, you may provide a callback module as the fourth argument.
 ```erlang
-{ok, Pid, []} = luaport:spawn(myid, "path/to/scripts", #{}, callback).
+{ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{}, callback).
 ```
 Calls and casts will automagically be mapped to the module's function of the same name.
 ```lua
@@ -117,6 +117,9 @@ If you want to insert or just execute some code during runtime, use the load fun
 ```
 ```erlang
 {ok, []} = luaport:load(Pid, <<"print('nice')">>).
+```
+```erlang
+{ok, [42]} = luaport:load(Pid, <<"return 42">>).
 ```
 To be able to continuously call or cast functions after accidental or intended respawns, you could use `{global, Name}` or `{local, Name}` as reference to register the port.
 ```erlang
@@ -151,7 +154,7 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 - Atom 'nil' translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on their way back.
 - If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L56-L64) get converted. You can modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
-- LuaPort uses a custom print function mimicking Lua's own print function. It differs in a few ways: It shows its output in the erlang shell, prints tables in depth and can take a variable number of arguments.
+- LuaPort uses a custom print function mimicking Lua's own. It differs in a few ways: It shows its output in the erlang shell, prints tables in depth and can take a variable number of arguments.
 
 #### Translations
 | Erlang | Elixir | Lua | Notes |
@@ -178,5 +181,5 @@ Since erlang and lua datatypes do not align too nicely, there are some things to
 | port.ismap(v) | if no metatype |
 
 ## Notes
--Apologies for the occasional bad commit discipline/hygiene.
--Thank you!
+- Apologies for the occasional bad commit discipline/hygiene.
+- Thank you!
