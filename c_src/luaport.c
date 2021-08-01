@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2019-2020 Tilman M. Jaeschke. See Copyright Notice in luaport.h
+** Copyright (C) 2019-2020 Tilman M. Jaeschke. See Copyright Notice in LICENSE
 ** Copyright (C) 2005-2020 Mike Pall. See Copyright Notice in luajit.h
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
 */
