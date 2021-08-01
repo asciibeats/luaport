@@ -73,7 +73,7 @@ return 23, 42
 {ok, _Pid1, [23, 42]} = luaport:spawn(myid, "path/to/scripts"),
 {ok, _Pid2, [23, 42]} = luaport:respawn(myid).
 ```
-To add static data to Lua's context, add a map as third argument to the spawn function.
+To add static data to the port's context, add a map as third argument to the spawn function.
 ```erlang
 {ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{config => {what, ever}, greeting => <<"moin">>}).
 ```
@@ -85,11 +85,11 @@ function Greet()
   print(greeting)
 end
 ```
-To push data into the global context of a running port, use the push function.
+To push global variables into the context during runtime, use the push function.
 ```erlang
 luaport:push(myid, #{name => <<"til">>}).
 ```
-To pull dynamic data into Lua's context, you may provide a callback module as the fourth argument.
+To pull dynamic data into the context, you may provide a callback module as the fourth argument to spawn.
 ```erlang
 {ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{}, callback).
 ```
