@@ -31,7 +31,6 @@ case1(_Config) ->
   %{ok, [[{atom, true, false, nil}, "abc"]]} = luaport:call(Pid, 'Echo', [[{atom, true, false, nil}, "abc"]]),
   {ok, [{{2, 3}, {<<"vier">>, 5}}]} = luaport:call(Pid, 'Echo', [{{2, 3}, {<<"vier">>, 5}}]),
   {ok, [6]} = luaport:call(Pid, 'Call', [<<"multiply">>, 2, 3]),
-  {ok, []} = luaport:call(Pid, 'Call', [<<"undefined">>, 2, 3]),
   PortRef2 = {local, moin},
   {ok, _Pid2, []} = luaport:spawn(PortRef2, Path, #{}, ?MODULE),
   {ok, [15]} = luaport:call(PortRef2, 'Call', [<<"multiply">>, 3, 5]),
@@ -69,6 +68,7 @@ case1(_Config) ->
           "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
           "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
           "+++++++++++++++">>]),
+  {error, undefined_callback} = luaport:call(Pid, 'Call', [<<"undefined">>, 2, 3]),
   ok = luaport:despawn(banane),
   NilRef = {global, nil},
   NilPath = filename:join([code:priv_dir(luaport), nil]),
