@@ -133,12 +133,20 @@ portloop(PortRef, Port, Callback, TRefs, Timeout) ->
     {Port, {data, Data}} ->
       try binary_to_term(Data, [safe]) of
         {call, F, A} ->
-          Result = tryapply(Callback, F, [PortRef | A]),
-          Port ! {self(), {command, term_to_binary(Result)}},
-          portloop(PortRef, Port, Callback, TRefs, Timeout);
+          try
+            Result = apply(Callback, F, A),
+            Port ! {self(), {command, term_to_binary(Result)}},
+            portloop(PortRef, Port, Callback, TRefs, Timeout)
+          catch
+            error:undef -> {error, undefined_callback}
+          end;
         {cast, F, A} ->
-          tryapply(Callback, F, [PortRef | A]),
-          portloop(PortRef, Port, Callback, TRefs, Timeout);
+          try
+            apply(Callback, F, A),
+            portloop(PortRef, Port, Callback, TRefs, Timeout)
+          catch
+            error:undef -> {error, undefined_callback}
+          end;
         {info, List} ->
           io:format("lua ~w ~p~n", [PortRef, List]),
           portloop(PortRef, Port, Callback, TRefs, Timeout);
@@ -195,12 +203,3 @@ wait_for_name(Name, false) ->
   wait_for_name(Name, lists:member(Name, global:registered_names()));
 wait_for_name(_Name, true) ->
   ok.
-
-tryapply(Callback, F, A) when Callback =/= undefined ->
-  try
-    apply(Callback, F, A)
-  catch
-    error:undef -> []
-  end;
-tryapply(_Callback, _F, _A) ->
-  [].

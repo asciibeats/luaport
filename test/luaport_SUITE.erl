@@ -4,9 +4,9 @@
 
 -export([all/0]).
 -export([case1/1]).
--export([init/2]).
--export([multiply/3]).
--export([print/2]).
+-export([init/1]).
+-export([multiply/2]).
+-export([print/1]).
 
 all() ->
   [case1].
@@ -92,11 +92,11 @@ case1(_Config) ->
   ok = luaport:despawn(NilRef),
   application:stop(luaport).
 
-init(_PortRef, Name) ->
+init(Name) ->
   [42, Name].
 
-multiply(_PortRef, A, B) ->
+multiply(A, B) ->
   [A * B].
 
-print(PortRef, A) ->
-  ct:pal("print: ~p ~p~n", [PortRef, A]).
+print(A) ->
+  ct:pal("print: ~p~n", [A]).
