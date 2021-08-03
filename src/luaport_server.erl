@@ -40,6 +40,8 @@ start_link(PortRef, Path, Config, Callback, Timeout) ->
   Pid ! {results, self(), Ref},
   receive {Ref, Results} -> {ok, Pid, Results} end.
 
+init(PortRef, Path, Config, Callback, Timeout) when is_binary(Path) ->
+  init(PortRef, binary_to_list(Path), Config, Callback, Timeout);
 init(PortRef, Path, Config, Callback, Timeout) when is_list(Path), is_map(Config), is_atom(Callback) ->
   Exec = filename:join([code:priv_dir(luaport), "luaport"]),
   Port = open_port({spawn_executable, Exec}, [{cd, Path}, {packet, 4}, binary, exit_status]),

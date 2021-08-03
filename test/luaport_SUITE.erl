@@ -71,7 +71,7 @@ case1(_Config) ->
   {error, undefined_callback} = luaport:call(Pid, 'Call', [<<"undefined">>, 2, 3]),
   ok = luaport:despawn(banane),
   NilRef = {global, nil},
-  NilPath = filename:join([code:priv_dir(luaport), nil]),
+  NilPath = list_to_binary(filename:join([code:priv_dir(luaport), nil])),
   {ok, _Pid, [3, <<"50">>]} = luaport:spawn(NilRef, NilPath),
   {ok, Pid5, [3, <<"50">>]} = luaport:respawn(NilRef),
   {ok, Binary1} = file:read_file(filename:join([NilPath, "load1.lua"])),
