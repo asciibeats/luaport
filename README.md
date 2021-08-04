@@ -4,16 +4,16 @@
 Use Erlang...
 ```erlang
 {ok, Pid, []} = luaport:spawn(some_id, "path/to/scripts"),
-{ok, [6]} = luaport:call(Pid, 'Multiply', [2, 3]).
+{ok, [6]} = luaport:call(Pid, multiply, [2, 3]).
 ```
 ...or Elixir...
 ```elixir
 {:ok, pid, []} = :luaport.spawn(:some_id, "path/to/scripts")
-{:ok, [6]} = :luaport.call(pid, :Multiply, [2, 3])
+{:ok, [6]} = :luaport.call(pid, :multiply, [2, 3])
 ```
 ...to execute a Lua script.
 ```lua
-function Multiply(a, b)
+function multiply(a, b)
   return a * b
 end
 ```
@@ -42,7 +42,7 @@ end
 ```
 Create a Lua script at `path/to/scripts` called `main.lua`.
 ```lua
-function Subtract(a, b)
+function subtract(a, b)
   return a - b
 end
 ```
@@ -50,19 +50,19 @@ When using Erlang, don't forget to start the application.
 ```erlang
 application:start(luaport),
 {ok, Pid, []} = luaport:spawn(myid, "path/to/scripts"),
-{ok, [42]} = luaport:call(Pid, 'Subtract', [43, 1]),
+{ok, [42]} = luaport:call(Pid, subtract, [43, 1]),
 luaport:despawn(myid),
 application:stop(luaport).
 ```
 With Elixir it will start automatically.
 ```elixir
 {:ok, pid, []} = :luaport.spawn(:myid, "path/to/scripts")
-{:ok, [42]} = :luaport.call(pid, :Subtract, [43, 1])
+{:ok, [42]} = :luaport.call(pid, :subtract, [43, 1])
 :luaport.despawn(:myid)
 ```
 To return results on spawn and respawn, just add a return statement to your `main.lua`...
 ```lua
-function Do()
+function do()
   print('something')
 end
 
@@ -81,7 +81,7 @@ The elements of that map will be available as global variables. Be careful not t
 ```lua
 local a, b = unpack(config)
 
-function Greet()
+function greet()
   print(greeting)
 end
 ```
@@ -111,8 +111,8 @@ port.cast.print('some message')
 ```
 If you want to insert or just execute some code during runtime, use the load function.
 ```erlang
-{ok, []} = luaport:load(Pid, <<"function Something() return 666 end">>),
-{ok, [666]} = luaport:call(Pid, 'Something').
+{ok, []} = luaport:load(Pid, <<"function something() return 666 end">>),
+{ok, [666]} = luaport:call(Pid, something).
 ```
 ```erlang
 {ok, []} = luaport:load(Pid, <<"print('nice')">>).
@@ -124,7 +124,7 @@ To be able to continuously call or cast functions after accidental or intended r
 ```erlang
 {ok, Pid1, []} = luaport:spawn({local, myid}, "path/to/scripts"),
 {ok, Pid2, []} = luaport:respawn({local, myid}),
-luaport:cast({local, myid}, 'Execute').
+luaport:cast({local, myid}, execute).
 ```
 Requiring modules works normally. You may put a module.lua or module.so into `path/to/scripts` or any other path in Lua's package.path or package.cpath, respectively.
 ```lua

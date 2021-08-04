@@ -1,5 +1,5 @@
 print('loading 1')
 
-function Func1()
+function func1()
   print('one')
 end
