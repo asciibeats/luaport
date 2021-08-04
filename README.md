@@ -8,10 +8,10 @@ Use Erlang...
 ```
 ...or Elixir...
 ```elixir
-{:ok, pid, []} = :luaport.spawn(:some_id, 'path/to/scripts')
+{:ok, pid, []} = :luaport.spawn(:some_id, "path/to/scripts")
 {:ok, [6]} = :luaport.call(pid, :Multiply, [2, 3])
 ```
-...to execute a Lua script:
+...to execute a Lua script.
 ```lua
 function Multiply(a, b)
   return a * b
@@ -56,7 +56,7 @@ application:stop(luaport).
 ```
 With Elixir it will start automatically.
 ```elixir
-{:ok, pid, []} = :luaport.spawn(:myid, 'path/to/scripts')
+{:ok, pid, []} = :luaport.spawn(:myid, "path/to/scripts")
 {:ok, [42]} = :luaport.call(pid, :Subtract, [43, 1])
 :luaport.despawn(:myid)
 ```
@@ -70,12 +70,12 @@ return 23, 42
 ```
 ...and retrieve them like this:
 ```erlang
-{ok, _Pid1, [23, 42]} = luaport:spawn(myid, "path/to/scripts"),
-{ok, _Pid2, [23, 42]} = luaport:respawn(myid).
+{ok, Pid1, [23, 42]} = luaport:spawn(myid, "path/to/scripts"),
+{ok, Pid2, [23, 42]} = luaport:respawn(myid).
 ```
 To add static data to the port's context, add a map as third argument to the spawn function.
 ```erlang
-{ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{config => {what, ever}, greeting => <<"moin">>}).
+{ok, Pid, []} = luaport:spawn(myid, "path/to/scripts", #{config => {what, ever}, greeting => <<"moin">>}).
 ```
 The elements of that map will be available as global variables. Be careful not to choose colliding names, as these variables will be named after the maps keys.
 ```lua
@@ -91,7 +91,7 @@ luaport:push(myid, #{name => <<"til">>}).
 ```
 To pull dynamic data into the context, you may provide a callback module as the fourth argument to spawn.
 ```erlang
-{ok, _Pid, []} = luaport:spawn(myid, "path/to/scripts", #{}, callback).
+{ok, Pid, []} = luaport:spawn(myid, "path/to/scripts", #{}, callback).
 ```
 ```erlang
 -module(callback).
@@ -122,11 +122,11 @@ If you want to insert or just execute some code during runtime, use the load fun
 ```
 To be able to continuously call or cast functions after accidental or intended respawns, you could use `{global, Name}` or `{local, Name}` as reference to register the port.
 ```erlang
-{ok, _Pid1, []} = luaport:spawn({local, myid}, "path/to/scripts"),
-{ok, _Pid2, []} = luaport:respawn({local, myid}),
+{ok, Pid1, []} = luaport:spawn({local, myid}, "path/to/scripts"),
+{ok, Pid2, []} = luaport:respawn({local, myid}),
 luaport:cast({local, myid}, 'Execute').
 ```
-Requiring modules works normally. You may put a module.lua or module.so into path/to/scripts or any other path in Lua's package.path or package.cpath, respectively.
+Requiring modules works normally. You may put a module.lua or module.so into `path/to/scripts` or any other path in Lua's package.path or package.cpath, respectively.
 ```lua
 local module = require('module')
 ```
@@ -159,7 +159,7 @@ Since Erlang and Lua datatypes do not align too nicely, there are some things to
 #### Translations
 | Erlang | Elixir | Lua | Notes |
 | --- | --- | --- | --- |
-| 23 | 23 | 23.0 | |
+| 23 | 23 | 23 | |
 | "abc" | 'abc' | {97, 98, 99} | Erlang strings are lists |
 | <<"abc">> | "abc" | 'abc' | |
 | \[1, 2] | \[1, 2] | {1, 2} | has metatype 'list' |
