@@ -1,6 +1,6 @@
 {application, luaport, [
   {description, "An Erlang/Elixir port for scripting application logic in Lua. Works with Lua and LuaJIT."},
-  {vsn, "1.6.1"},
+  {vsn, "1.6.2"},
   {modules, [luaport, luaport_app, luaport_sup, luaport_server]},
   {registered, [luaport_sup]},
   {mod, {luaport_app, []}},
