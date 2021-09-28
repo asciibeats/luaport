@@ -154,7 +154,7 @@ Since Erlang and Lua datatypes do not align too nicely, there are some things to
 - Atom 'nil' translates to nil.
 - For convenience, all other atoms become strings. They will be handled like any other string on their way back.
 - If compiled to use [LuaJIT](https://luajit.org), LuaPort has no integer type. By default, numbers that are [almost integers](c_src/luaport.c#L56-L64) get converted. You may modify this behaviour by defining `LUAP_NOINT` on compilation, disabling integer handling.
-- LuaPort uses a custom print function mimicking Lua's own. It differs slightly: It shows its output in Erlang's shell, prints tables in depth and can take a variable number of arguments.
+- LuaPort uses a custom print function mimicking Lua's own. It differs slightly: It shows its output in Erlang's shell and prints tables in depth.
 
 #### Translations
 | Erlang | Elixir | Lua | Notes |
