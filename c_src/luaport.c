@@ -625,7 +625,7 @@ static int e2l_call(const char *buf, int *index, lua_State *L, int *nargs)
     return -1;
   }
 
-  lua_rawgeti(L, LUA_REGISTRYINDEX, abs(ref));
+  lua_rawgeti(L, LUA_REGISTRYINDEX, labs(ref));
 
   if (ref > 0)
   {
