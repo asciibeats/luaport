@@ -24,7 +24,7 @@ DEFINES += -DLUAP_FFI # enable luajit ffi
 CFLAGS := -Ic_src $(LUA_CFLAGS) -I$(ERTS_INCLUDE_DIR) -I$(ERL_INTERFACE_INCLUDE_DIR)
 CFLAGS += -O3 -fPIC
 #CFLAGS += -Og -ggdb
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall -Werror -Wno-unused-function
 CFLAGS += $(DEFINES)
 LDFLAGS := -lpthread -lei $(LUA_LDFLAGS) -L$(ERL_INTERFACE_LIB_DIR)
 
